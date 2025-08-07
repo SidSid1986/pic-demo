@@ -1,0 +1,314 @@
+<template>
+  <div style="display: flex; height: 100vh">
+    <!-- 节点库 -->
+    <div style="width: 180px; padding: 16px; background: #f5f5f7">
+      <button @click="exportFlowJSON" style="margin: 12px">导出流程JSON</button>
+      <button @click="deleteSelectedEdge">删除选中连线</button>
+      <button @click="deleteSelectedNode">删除选中节点</button>
+      <button @click="startFlowAnimation" style="margin-top: 12px">
+        开始流程动画
+      </button>
+      <h3>节点库</h3>
+      <div
+        v-for="(item, idx) in nodeTemplates"
+        :key="idx"
+        class="node-template"
+        draggable="true"
+        @dragstart="(e) => onDragStart(e, item, idx)"
+        style="
+          margin-bottom: 8px;
+          padding: 8px;
+          background: #fff;
+          border: 1px solid #ddd;
+          cursor: grab;
+        "
+      >
+        {{ item.data.label }}
+      </div>
+    </div>
+    <!-- 画布区 -->
+    <div style="flex: 1; height: 100vh">
+      <VueFlow
+        v-model:nodes="nodes"
+        v-model:edges="edges"
+        v-model:selected-nodes="selectedNodes"
+        v-model:selected-edges="selectedEdges"
+        :selectable="true"
+        :nodes-draggable="true"
+        :elements-selectable="true"
+        :class="{ dark }"
+        class="basic-flow"
+        :default-viewport="{ zoom: 1.5 }"
+        :min-zoom="0.2"
+        :max-zoom="4"
+        @drop="onDrop"
+        @dragover="onDragOver"
+        @connect="onConnect"
+        @node-click="onNodeClick"
+        @edge-click="onEdgeClick"
+      >
+        <!-- 注册自定义边 -->
+        <template #edge-animated="edgeProps">
+          <AnimatedEdge
+            :id="edgeProps.id"
+            :source="edgeProps.source"
+            :target="edgeProps.target"
+            :source-x="edgeProps.sourceX"
+            :source-y="edgeProps.sourceY"
+            :targetX="edgeProps.targetX"
+            :targetY="edgeProps.targetY"
+            :source-position="edgeProps.sourcePosition"
+            :target-position="edgeProps.targetPosition"
+            :data="edgeProps.data"
+          />
+        </template>
+
+        <Background pattern-color="#aaa" :gap="16" />
+        <MiniMap />
+        <Controls position="top-left">
+          <ControlButton title="Reset Transform" @click="resetTransform">
+            <Icon name="reset" />
+          </ControlButton>
+          <ControlButton title="Shuffle Node Positions" @click="updatePos">
+            <Icon name="update" />
+          </ControlButton>
+          <ControlButton title="Toggle Dark Mode" @click="toggleDarkMode">
+            <Icon v-if="dark" name="sun" />
+            <Icon v-else name="moon" />
+          </ControlButton>
+          <ControlButton title="Log `toObject`" @click="logToObject">
+            <Icon name="log" />
+          </ControlButton>
+        </Controls>
+      </VueFlow>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { VueFlow, useVueFlow, MarkerType } from "@vue-flow/core";
+import { Background } from "@vue-flow/background";
+import { ControlButton, Controls } from "@vue-flow/controls";
+import { MiniMap } from "@vue-flow/minimap";
+import Icon from "./Icon.vue";
+import AnimatedEdge from "./AnimatedEdge.vue"; // 导入自定义动画边组件
+import "@/styles/main.css";
+import "@vue-flow/core/dist/style.css";
+
+// 节点库模板
+const nodeTemplates = [
+  {
+    type: "input",
+    data: { label: "开始" },
+    class: "my-custom-node-class",
+    style: { backgroundColor: "red", width: "100px", height: "50px" },
+  },
+  { type: "default", data: { label: "步骤1" }, class: "light" },
+  { type: "default", data: { label: "步骤2" }, class: "light" },
+  { type: "output", data: { label: "结束" }, class: "light" },
+];
+
+const nodes = ref([]);
+const edges = ref([]);
+const selectedNodes = ref([]);
+const selectedEdges = ref([]);
+const { onInit, addEdges, project, setViewport, toObject, updateEdgeData } =
+  useVueFlow();
+const dark = ref(false);
+
+// 拖拽开始时，记录拖拽的节点类型
+function onDragStart(event, template, idx) {
+  event.dataTransfer.setData(
+    "application/vueflow",
+    JSON.stringify({ ...template, idx })
+  );
+  event.dataTransfer.effectAllowed = "move";
+}
+
+// 拖拽放置
+function onDrop(event) {
+  event.preventDefault();
+  const data = event.dataTransfer.getData("application/vueflow");
+  if (!data) return;
+  const template = JSON.parse(data);
+
+  // 计算节点位置
+  const rect = event.currentTarget.getBoundingClientRect();
+  const position = project({
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  });
+
+  const id = `node-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  nodes.value.push({
+    ...template,
+    id,
+    position,
+  });
+}
+
+function onDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+}
+
+// 创建连线时使用我们的自定义动画边;
+function onConnect(connection) {
+  // 生成唯一ID
+  const edgeId = `edge-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  addEdges({
+    ...connection,
+    id: edgeId,
+    type: "animated",
+    animated: true, // 这是我们的自定义边组件类型标识
+    markerEnd: {
+      type: MarkerType.ArrowClosed, // 保持箭头
+      width: 20,
+      height: 20,
+      color: "#6b7280",
+    },
+    data: {
+      startAnimation: false,
+      onAnimationStart: (value) => {
+        // 更新边数据，重置动画触发状态
+        updateEdgeData(edgeId, { startAnimation: value });
+      },
+    },
+  });
+}
+
+// 开始流程动画
+function startFlowAnimation() {
+  // 构建节点连接关系
+  const edgeMap = {};
+  edges.value.forEach((edge) => {
+    edgeMap[edge.source] = edge.id;
+  });
+
+  // 找到起始节点
+  const allTargets = edges.value.map((e) => e.target);
+  const startNode = nodes.value.find((n) => !allTargets.includes(n.id));
+
+  if (!startNode) {
+    alert("请先创建完整的流程，包含开始和结束节点");
+    return;
+  }
+
+  // 按顺序触发每条边的动画
+  let currentNodeId = startNode.id;
+  const animateNextEdge = () => {
+    const edgeId = edgeMap[currentNodeId];
+    if (!edgeId) return;
+
+    // 触发当前边的动画
+    updateEdgeData(edgeId, { startAnimation: true });
+
+    // 找到下一个节点
+    const nextEdge = edges.value.find((e) => e.id === edgeId);
+    if (nextEdge) {
+      currentNodeId = nextEdge.target;
+      // 等待当前动画完成后再开始下一个
+      setTimeout(animateNextEdge, 1500);
+    }
+  };
+
+  // 开始动画序列
+  animateNextEdge();
+}
+
+// 其他原有方法保持不变...
+function deleteSelectedNode() {
+  const selectedIds = selectedNodes.value.map((n) =>
+    typeof n === "string" ? n : n.id
+  );
+  nodes.value = nodes.value.filter((node) => !selectedIds.includes(node.id));
+  edges.value = edges.value.filter(
+    (edge) =>
+      !selectedIds.includes(edge.source) && !selectedIds.includes(edge.target)
+  );
+  selectedNodes.value = [];
+}
+
+function deleteSelectedEdge() {
+  const selectedIds = selectedEdges.value.map((e) =>
+    typeof e === "string" ? e : e.id
+  );
+  edges.value = edges.value.filter((edge) => !selectedIds.includes(edge.id));
+  selectedEdges.value = [];
+}
+
+onInit((vueFlowInstance) => {
+  vueFlowInstance.fitView();
+});
+
+function updatePos() {
+  nodes.value = nodes.value.map((node) => ({
+    ...node,
+    position: {
+      x: Math.random() * 400,
+      y: Math.random() * 400,
+    },
+  }));
+}
+
+function logToObject() {
+  console.log(toObject());
+}
+
+function resetTransform() {
+  setViewport({ x: 0, y: 0, zoom: 1 });
+}
+
+function toggleDarkMode() {
+  dark.value = !dark.value;
+}
+
+function exportFlowJSON() {
+  // 构建 id 到 label 的映射
+  const nodeMap = {};
+  nodes.value.forEach((node) => {
+    nodeMap[node.id] = node.data.label;
+  });
+
+  // 构建 source 到 target 的映射
+  const nextMap = {};
+  edges.value.forEach((edge) => {
+    nextMap[edge.source] = edge.target;
+  });
+
+  // 找到起始节点
+  const allTargets = edges.value.map((e) => e.target);
+  const startNodes = nodes.value.filter((n) => !allTargets.includes(n.id));
+  if (startNodes.length === 0) {
+    alert("没有找到开始节点！");
+    return;
+  }
+
+  // 顺序遍历节点
+  const result = [];
+  let currentId = startNodes[0].id;
+  while (currentId) {
+    result.push({ id: currentId, label: nodeMap[currentId] });
+    currentId = nextMap[currentId];
+  }
+
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function onNodeClick(params) {
+  selectedNodes.value = [params.node.id];
+}
+
+function onEdgeClick(params) {
+  selectedEdges.value = [params.edge.id];
+}
+</script>
+
+<style scoped>
+.node-template:hover {
+  background: #e3eafa;
+}
+</style>

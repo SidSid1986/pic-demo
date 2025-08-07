@@ -77,3 +77,10 @@ body,
 .basic-flow.dark .vue-flow__edge-text {
     fill:#fffffb
 }
+
+:root {
+    --vf-node-bg: green;
+    --vf-node-text: #ffffff;
+    --vf-connection-path: #b1b1b7;
+    --vf-handle: #555;
+}
