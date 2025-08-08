@@ -319,7 +319,7 @@ function exportFlowJSON() {
     console.log(JSON.stringify(result, null, 2));
     return result;
   } else {
-    // ↓↓↓ 并行流程 ↓↓↓ （只修改这部分）
+    // ↓↓↓ 并行流程 ↓↓↓ （修改了单个嵌套步骤的处理逻辑）
 
     // 找出所有直接从开始节点并行的步骤
     const directParallelSteps = nextMap[startNodes[0].id] || [];
@@ -361,29 +361,21 @@ function exportFlowJSON() {
             }),
         });
       } else if (nestedSteps.length === 1) {
-        // 检查嵌套步骤是否还有子步骤
-        const nextNestedSteps = nextMap[nestedSteps[0]] || [];
-        if (nextNestedSteps.length > 1) {
-          // 嵌套步骤有并行子步骤（如步骤3和步骤4）
-          parallelSteps.push({
-            id: stepId,
-            label: nodeMap[stepId],
-            steps: nextNestedSteps
-              .map((nestedId) => ({
-                id: nestedId,
-                label: nodeMap[nestedId],
-              }))
-              .filter((nestedStep) => {
-                // 过滤掉结束节点
-                return !endNodes.some(
-                  (endNode) => endNode.id === nestedStep.id
-                );
-              }),
-          });
-        } else {
-          // 单个嵌套步骤，无并行子步骤，作为普通步骤处理
-          parallelSteps.push({ id: stepId, label: nodeMap[stepId] });
-        }
+        // 此步骤有单个嵌套步骤（如步骤1有步骤3）
+        // 修复：即使只有一个嵌套步骤，也要包含它
+        parallelSteps.push({
+          id: stepId,
+          label: nodeMap[stepId],
+          steps: [
+            {
+              id: nestedSteps[0],
+              label: nodeMap[nestedSteps[0]],
+            },
+          ].filter((nestedStep) => {
+            // 过滤掉结束节点
+            return !endNodes.some((endNode) => endNode.id === nestedStep.id);
+          }),
+        });
       } else {
         // 没有嵌套步骤，作为普通并行步骤处理
         parallelSteps.push({ id: stepId, label: nodeMap[stepId] });
@@ -428,6 +420,21 @@ function exportFlowJSON() {
                   (endNode) => endNode.id === nestedStep.id
                 );
               }),
+          });
+        } else if (stepNext.length === 1) {
+          // 步骤1有单个嵌套步骤（步骤3）
+          finalSteps.push({
+            id: step.id,
+            label: nodeMap[step.id],
+            steps: [
+              {
+                id: stepNext[0],
+                label: nodeMap[stepNext[0]],
+              },
+            ].filter((nestedStep) => {
+              // 过滤掉结束节点
+              return !endNodes.some((endNode) => endNode.id === nestedStep.id);
+            }),
           });
         } else {
           finalSteps.push(step);
