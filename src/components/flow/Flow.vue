@@ -163,12 +163,12 @@ function onConnect(connection) {
     id: edgeId,
     type: "animated",
     animated: true, // 这是我们的自定义边组件类型标识
-    markerEnd: {
-      type: MarkerType.ArrowClosed, // 保持箭头
-      width: 20,
-      height: 20,
-      color: "#6b7280",
-    },
+    // markerEnd: {
+    //   type: MarkerType.ArrowClosed, // 保持箭头
+    //   width: 20,
+    //   height: 20,
+    //   color: "#6b7280",
+    // },
     data: {
       startAnimation: false,
       onAnimationStart: (value) => {
@@ -272,30 +272,102 @@ function exportFlowJSON() {
     nodeMap[node.id] = node.data.label;
   });
 
-  // 构建 source 到 target 的映射
+  // 构建 source 到 target 数组的映射
   const nextMap = {};
+  // 构建 target 到 source 数组的映射（用于确定起始和结束节点）
+  const prevMap = {};
+
   edges.value.forEach((edge) => {
-    nextMap[edge.source] = edge.target;
+    const { source, target } = edge;
+    if (!nextMap[source]) {
+      nextMap[source] = [];
+    }
+    nextMap[source].push(target);
+
+    if (!prevMap[target]) {
+      prevMap[target] = [];
+    }
+    prevMap[target].push(source);
   });
 
-  // 找到起始节点
-  const allTargets = edges.value.map((e) => e.target);
-  const startNodes = nodes.value.filter((n) => !allTargets.includes(n.id));
+  // 找到起始节点（没有前驱节点的节点）
+  const startNodes = nodes.value.filter((node) => !prevMap[node.id] || prevMap[node.id].length === 0);
   if (startNodes.length === 0) {
     alert("没有找到开始节点！");
     return;
   }
 
-  // 顺序遍历节点
-  const result = [];
-  let currentId = startNodes[0].id;
-  while (currentId) {
-    result.push({ id: currentId, label: nodeMap[currentId] });
-    currentId = nextMap[currentId];
+  // 找到结束节点（没有后继节点的节点）
+  const endNodes = nodes.value.filter((node) => !nextMap[node.id] || nextMap[node.id].length === 0);
+  if (endNodes.length === 0) {
+    alert("没有找到结束节点！");
+    return;
   }
 
-  console.log(JSON.stringify(result, null, 2));
-  return result;
+  // 检测流程类型：是否有多个起始路径（并行流程）
+  const isParallel = startNodes.some((startNode) => nextMap[startNode.id]?.length > 1);
+
+  if (!isParallel) {
+    // ↓↓↓ 线性流程 ↓↓↓
+    const result = [];
+    let currentId = startNodes[0].id;
+    while (currentId) {
+      result.push({ id: currentId, label: nodeMap[currentId] });
+      currentId = nextMap[currentId]?.[0]; // 线性流程只取第一个后继节点
+    }
+
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } else {
+    // ↓↓↓ 并行流程 ↓↓↓
+    // 找到所有路径并组织成步骤
+    const allPaths = [];
+    function traverse(currentPath, currentNodeId) {
+      currentPath.push({ id: currentNodeId, label: nodeMap[currentNodeId] });
+      const nextNodes = nextMap[currentNodeId] || [];
+      
+      if (nextNodes.length === 0) {
+        allPaths.push([...currentPath]);
+      } else {
+        nextNodes.forEach(nextId => {
+          traverse([...currentPath], nextId);
+        });
+      }
+    }
+
+    // 从第一个起始节点开始遍历
+    traverse([], startNodes[0].id);
+
+    // 收集所有步骤（排除开始和结束节点）
+    const steps = [];
+    for (let i = 1; i < allPaths[0].length - 1; i++) { // 跳过开始和结束节点
+      const stepGroup = [];
+      allPaths.forEach(path => {
+        if (i < path.length) {
+          stepGroup.push(path[i]);
+        }
+      });
+      if (stepGroup.length > 0) {
+        steps.push(stepGroup);
+      }
+    }
+
+    // 构建最终结果
+    const result = {
+      start: {
+        id: startNodes[0].id,
+        label: nodeMap[startNodes[0].id],
+      },
+      steps: steps,
+      end: {
+        id: endNodes[0].id,
+        label: nodeMap[endNodes[0].id],
+      },
+    };
+
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  }
 }
 
 function onNodeClick(params) {

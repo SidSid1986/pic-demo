@@ -1,4 +1,29 @@
 <!-- AnimatedEdge.vue -->
+<template>
+  <BaseEdge
+    :id="id"
+    ref="edgeRef"
+    :path="path[0]"
+    :style="{ stroke: '#6b7280', strokeWidth: 2 }"
+  />
+
+  <EdgeLabelRenderer>
+    <div
+      ref="labelRef"
+      :style="{
+        visibility: isAnimating ? 'visible' : 'hidden',
+        position: 'absolute',
+        zIndex: 1,
+        offsetPath: `path('${path[0]}')`,
+        offsetRotate: '0deg',
+        offsetAnchor: 'center',
+      }"
+    >
+      <span>📦</span>
+    </div>
+  </EdgeLabelRenderer>
+</template>
+
 <script setup>
 import { computed, ref, watch } from "vue";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@vue-flow/core";
@@ -101,27 +126,3 @@ watch(
 );
 </script>
 
-<template>
-  <BaseEdge
-    :id="id"
-    ref="edgeRef"
-    :path="path[0]"
-    :style="{ stroke: '#6b7280', strokeWidth: 2 }"
-  />
-
-  <EdgeLabelRenderer>
-    <div
-      ref="labelRef"
-      :style="{
-        visibility: isAnimating ? 'visible' : 'hidden',
-        position: 'absolute',
-        zIndex: 1,
-        offsetPath: `path('${path[0]}')`,
-        offsetRotate: '0deg',
-        offsetAnchor: 'center',
-      }"
-    >
-      <span>📦</span>
-    </div>
-  </EdgeLabelRenderer>
-</template>
