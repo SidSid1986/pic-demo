@@ -4,7 +4,10 @@
     :id="id"
     ref="edgeRef"
     :path="path[0]"
-    :style="{ stroke: '#6b7280', strokeWidth: 2 }"
+    :style="{
+      stroke: isSelected ? '#ff0000' : '#6b7280',
+      strokeWidth: 2,
+    }"
   />
 
   <EdgeLabelRenderer>
@@ -78,6 +81,8 @@ let animation = null;
 
 const path = computed(() => getSmoothStepPath(props));
 
+const isSelected = computed(() => props.data.isSelected || false);
+
 // 开始动画
 function startAnimation() {
   if (isAnimating.value) return;
@@ -125,4 +130,3 @@ watch(
   }
 );
 </script>
-

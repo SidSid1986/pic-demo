@@ -79,7 +79,7 @@ body,
 }
 
 :root {
-    --vf-node-bg: green;
+    --vf-node-bg: rgb(72,201,176);
     --vf-node-text: #ffffff;
     --vf-connection-path: #b1b1b7;
     --vf-handle: #555;

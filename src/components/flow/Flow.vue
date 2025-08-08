@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex; height: 100vh">
+  <div style="display: flex; height: 100vh; width: 50vw">
     <!-- 节点库 -->
     <div style="width: 180px; padding: 16px; background: #f5f5f7">
       <button @click="exportFlowJSON" style="margin: 12px">导出流程JSON</button>
@@ -9,25 +9,20 @@
         开始流程动画
       </button>
       <h3>节点库</h3>
-      <div
-        v-for="(item, idx) in nodeTemplates"
-        :key="idx"
-        class="node-template"
-        draggable="true"
-        @dragstart="(e) => onDragStart(e, item, idx)"
-        style="
-          margin-bottom: 8px;
-          padding: 8px;
-          background: #fff;
-          border: 1px solid #ddd;
-          cursor: grab;
-        "
-      >
-        {{ item.data.label }}
+      <div class="node-templates-container">
+        <div
+          v-for="(item, idx) in nodeTemplates"
+          :key="idx"
+          class="node-template"
+          draggable="true"
+          @dragstart="(e) => onDragStart(e, item, idx)"
+        >
+          {{ item.data.label }}
+        </div>
       </div>
     </div>
     <!-- 画布区 -->
-    <div style="flex: 1; height: 100vh">
+    <div style="flex: 1; height: 100vh; border: 1px solid pink">
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -63,15 +58,24 @@
           />
         </template>
 
-        <Background pattern-color="#aaa" :gap="16" />
+        <Background
+          :size="1.6"
+          pattern-color="	rgba(255,192,203,1.000)"
+          bgColor="rgba(238,238,238,0.5)"
+          :gap="16"
+        />
         <MiniMap />
-        <Controls position="top-left">
-          <ControlButton title="Reset Transform" @click="resetTransform">
+        <Controls
+          :showFitView="false"
+          :showInteractive="false"
+          position="top-left"
+        >
+          <!-- <ControlButton title="Reset Transform" @click="resetTransform">
             <Icon name="reset" />
           </ControlButton>
           <ControlButton title="Shuffle Node Positions" @click="updatePos">
             <Icon name="update" />
-          </ControlButton>
+          </ControlButton> -->
           <ControlButton title="Toggle Dark Mode" @click="toggleDarkMode">
             <Icon v-if="dark" name="sun" />
             <Icon v-else name="moon" />
@@ -102,13 +106,38 @@ const nodeTemplates = [
     type: "input",
     data: { label: "开始" },
     class: "my-custom-node-class",
-    style: { backgroundColor: "red", width: "100px", height: "50px" },
+    style: { backgroundColor: "pink", width: "60px", height: "40px" },
   },
-  { type: "default", data: { label: "步骤1" }, class: "light" },
-  { type: "default", data: { label: "步骤2" }, class: "light" },
-  { type: "default", data: { label: "步骤3" }, class: "light" },
-  { type: "default", data: { label: "步骤4" }, class: "light" },
-  { type: "output", data: { label: "结束" }, class: "light" },
+  {
+    type: "default",
+    data: { label: "步骤1" },
+    class: "light",
+    style: { width: "60px", height: "40px" },
+  },
+  {
+    type: "default",
+    data: { label: "步骤2" },
+    class: "light",
+    style: { width: "60px", height: "40px" },
+  },
+  {
+    type: "default",
+    data: { label: "步骤3" },
+    class: "light",
+    style: { width: "60px", height: "40px" },
+  },
+  {
+    type: "default",
+    data: { label: "步骤4" },
+    class: "light",
+    style: { width: "60px", height: "40px" },
+  },
+  {
+    type: "output",
+    data: { label: "结束" },
+    class: "light",
+    style: { backgroundColor: "pink", width: "60px", height: "40px" },
+  },
 ];
 
 const nodes = ref([]);
@@ -452,15 +481,52 @@ function exportFlowJSON() {
 }
 
 function onNodeClick(params) {
+  console.log(params);
   selectedNodes.value = [params.node.id];
 }
 
-function onEdgeClick(params) {
-  selectedEdges.value = [params.edge.id];
-}
+// function onEdgeClick(params) {
+//   console.log(params);
+//   selectedEdges.value = [params.edge.id];
+// }
+
+const onEdgeClick = (event) => {
+  console.log(event.edge);
+  const edgeId = event.edge.id;
+  selectedEdges.value = [event.edge.id];
+
+  // 更新 edges，设置被点击的边的 data.isSelected 或 data.color
+  edges.value = edges.value.map((edge) => ({
+    ...edge,
+    data: {
+      ...edge.data,
+      isSelected: edge.id === edgeId, // 标记是否被点击
+      // 或者直接设置颜色
+      // color: edge.id === edgeId ? '#ff0000' : undefined,
+    },
+  }));
+};
 </script>
 
 <style scoped>
+.node-templates-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.node-template {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  cursor: grab;
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+  line-height: 40px;
+}
+
 .node-template:hover {
   background: #e3eafa;
 }
