@@ -106,6 +106,8 @@ const nodeTemplates = [
   },
   { type: "default", data: { label: "步骤1" }, class: "light" },
   { type: "default", data: { label: "步骤2" }, class: "light" },
+  { type: "default", data: { label: "步骤3" }, class: "light" },
+  { type: "default", data: { label: "步骤4" }, class: "light" },
   { type: "output", data: { label: "结束" }, class: "light" },
 ];
 
@@ -274,41 +276,39 @@ function exportFlowJSON() {
 
   // 构建 source 到 target 数组的映射
   const nextMap = {};
-  // 构建 target 到 source 数组的映射（用于确定起始和结束节点）
-  const prevMap = {};
-
   edges.value.forEach((edge) => {
     const { source, target } = edge;
     if (!nextMap[source]) {
       nextMap[source] = [];
     }
     nextMap[source].push(target);
-
-    if (!prevMap[target]) {
-      prevMap[target] = [];
-    }
-    prevMap[target].push(source);
   });
 
   // 找到起始节点（没有前驱节点的节点）
-  const startNodes = nodes.value.filter((node) => !prevMap[node.id] || prevMap[node.id].length === 0);
+  const startNodes = nodes.value.filter(
+    (node) => !edges.value.some((edge) => edge.target === node.id)
+  );
   if (startNodes.length === 0) {
     alert("没有找到开始节点！");
     return;
   }
 
   // 找到结束节点（没有后继节点的节点）
-  const endNodes = nodes.value.filter((node) => !nextMap[node.id] || nextMap[node.id].length === 0);
+  const endNodes = nodes.value.filter(
+    (node) => !nextMap[node.id]?.length || nextMap[node.id].length === 0
+  );
   if (endNodes.length === 0) {
     alert("没有找到结束节点！");
     return;
   }
 
   // 检测流程类型：是否有多个起始路径（并行流程）
-  const isParallel = startNodes.some((startNode) => nextMap[startNode.id]?.length > 1);
+  const isParallel = startNodes.some(
+    (startNode) => nextMap[startNode.id]?.length > 1
+  );
 
   if (!isParallel) {
-    // ↓↓↓ 线性流程 ↓↓↓
+    // ↓↓↓ 线性流程 ↓↓↓ （保持您原来的正确代码不变）
     const result = [];
     let currentId = startNodes[0].id;
     while (currentId) {
@@ -319,51 +319,125 @@ function exportFlowJSON() {
     console.log(JSON.stringify(result, null, 2));
     return result;
   } else {
-    // ↓↓↓ 并行流程 ↓↓↓
-    // 找到所有路径并组织成步骤
-    const allPaths = [];
-    function traverse(currentPath, currentNodeId) {
-      currentPath.push({ id: currentNodeId, label: nodeMap[currentNodeId] });
-      const nextNodes = nextMap[currentNodeId] || [];
-      
-      if (nextNodes.length === 0) {
-        allPaths.push([...currentPath]);
-      } else {
-        nextNodes.forEach(nextId => {
-          traverse([...currentPath], nextId);
-        });
-      }
-    }
+    // ↓↓↓ 并行流程 ↓↓↓ （只修改这部分）
 
-    // 从第一个起始节点开始遍历
-    traverse([], startNodes[0].id);
+    // 找出所有直接从开始节点并行的步骤
+    const directParallelSteps = nextMap[startNodes[0].id] || [];
 
-    // 收集所有步骤（排除开始和结束节点）
-    const steps = [];
-    for (let i = 1; i < allPaths[0].length - 1; i++) { // 跳过开始和结束节点
-      const stepGroup = [];
-      allPaths.forEach(path => {
-        if (i < path.length) {
-          stepGroup.push(path[i]);
-        }
-      });
-      if (stepGroup.length > 0) {
-        steps.push(stepGroup);
-      }
-    }
-
-    // 构建最终结果
+    // 构建结果结构
     const result = {
       start: {
         id: startNodes[0].id,
         label: nodeMap[startNodes[0].id],
       },
-      steps: steps,
+      steps: [],
       end: {
         id: endNodes[0].id,
         label: nodeMap[endNodes[0].id],
       },
     };
+
+    // 收集所有并行步骤（步骤1、步骤2等同级步骤）
+    const parallelSteps = [];
+
+    // 先处理直接并行步骤
+    directParallelSteps.forEach((stepId) => {
+      // 检查此步骤是否有嵌套步骤（步骤1是否有步骤3和步骤4）
+      const nestedSteps = nextMap[stepId] || [];
+
+      if (nestedSteps.length > 1) {
+        // 此步骤有并行嵌套步骤（如步骤1有步骤3和步骤4）
+        parallelSteps.push({
+          id: stepId,
+          label: nodeMap[stepId],
+          steps: nestedSteps
+            .map((nestedId) => ({
+              id: nestedId,
+              label: nodeMap[nestedId],
+            }))
+            .filter((nestedStep) => {
+              // 过滤掉结束节点（不应该出现在嵌套steps中）
+              return !endNodes.some((endNode) => endNode.id === nestedStep.id);
+            }),
+        });
+      } else if (nestedSteps.length === 1) {
+        // 检查嵌套步骤是否还有子步骤
+        const nextNestedSteps = nextMap[nestedSteps[0]] || [];
+        if (nextNestedSteps.length > 1) {
+          // 嵌套步骤有并行子步骤（如步骤3和步骤4）
+          parallelSteps.push({
+            id: stepId,
+            label: nodeMap[stepId],
+            steps: nextNestedSteps
+              .map((nestedId) => ({
+                id: nestedId,
+                label: nodeMap[nestedId],
+              }))
+              .filter((nestedStep) => {
+                // 过滤掉结束节点
+                return !endNodes.some(
+                  (endNode) => endNode.id === nestedStep.id
+                );
+              }),
+          });
+        } else {
+          // 单个嵌套步骤，无并行子步骤，作为普通步骤处理
+          parallelSteps.push({ id: stepId, label: nodeMap[stepId] });
+        }
+      } else {
+        // 没有嵌套步骤，作为普通并行步骤处理
+        parallelSteps.push({ id: stepId, label: nodeMap[stepId] });
+      }
+    });
+
+    // 处理其他可能的并行步骤（如步骤2）
+    const otherParallelSteps =
+      nextMap[startNodes[0].id]?.filter((stepId) => {
+        // 排除已经处理的直接并行步骤
+        return !directParallelSteps.includes(stepId);
+      }) || [];
+
+    otherParallelSteps.forEach((stepId) => {
+      parallelSteps.push({ id: stepId, label: nodeMap[stepId] });
+    });
+
+    // 过滤掉结束节点（不应该出现在steps中）
+    result.steps = parallelSteps.filter((step) => {
+      return !endNodes.some((endNode) => endNode.id === step.id);
+    });
+
+    // 特殊处理：如果步骤1有嵌套步骤3和4，确保它们被正确包含
+    const finalSteps = [];
+    result.steps.forEach((step) => {
+      if (step.id === directParallelSteps[0]) {
+        // 假设步骤1是第一个并行步骤
+        const stepNext = nextMap[step.id] || [];
+        if (stepNext.length > 1) {
+          // 步骤1有并行子步骤（步骤3和4）
+          finalSteps.push({
+            id: step.id,
+            label: nodeMap[step.id],
+            steps: stepNext
+              .map((nestedId) => ({
+                id: nestedId,
+                label: nodeMap[nestedId],
+              }))
+              .filter((nestedStep) => {
+                // 只包含步骤3和4，不包含结束节点
+                return !endNodes.some(
+                  (endNode) => endNode.id === nestedStep.id
+                );
+              }),
+          });
+        } else {
+          finalSteps.push(step);
+        }
+      } else {
+        finalSteps.push(step);
+      }
+    });
+
+    result.steps = finalSteps;
 
     console.log(JSON.stringify(result, null, 2));
     return result;

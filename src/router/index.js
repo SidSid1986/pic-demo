@@ -2,8 +2,8 @@
  * @Author: Sid Li
  * @Date: 2025-08-06 17:13:35
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-06 17:20:24
- * @FilePath: \pic-demo\src\router\index.js
+ * @LastEditTime: 2025-08-08 13:54:33
+ * @FilePath: \pic-demo-git\pic-demo\src\router\index.js
  * @Description: 
  */
 import { createWebHashHistory, createRouter } from "vue-router";
@@ -75,3 +75,6 @@ const router = createRouter({
 // });
 
 export default router;
+
+
+
