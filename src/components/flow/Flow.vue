@@ -1,7 +1,7 @@
 <template>
-  <div style="display: flex; height: 100vh; width: 50vw">
+  <div class="flow-container">
     <!-- 节点库 -->
-    <div style="width: 180px; padding: 16px; background: #f5f5f7">
+    <div class="flow-menu">
       <button @click="exportFlowJSON" style="margin: 12px">导出流程JSON</button>
       <button @click="deleteSelectedEdge">删除选中连线</button>
       <button @click="deleteSelectedNode">删除选中节点</button>
@@ -22,7 +22,7 @@
       </div>
     </div>
     <!-- 画布区 -->
-    <div style="flex: 1; height: 100vh; border: 1px solid pink">
+    <div class="flow-content">
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -695,20 +695,42 @@ const onEdgeClick = (event) => {
 </script>
 
 <style scoped>
+.flow-container {
+  display: flex;
+  height: 100vh;
+  width: 50vw;
+  box-sizing: border-box;
+}
+
+.flow-menu {
+  width: 10vw;
+  /* padding: 16px; */
+  background: #f5f5f7;
+  border: 1px solid pink;
+}
+
+.flow-content {
+  height: 100vh;
+  width: 40vw;
+  border: 1px solid pink;
+  box-sizing: border-box;
+}
+
 .node-templates-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* border: 1px solid red; */
 }
 .node-template {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   padding: 8px;
   background: #fff;
   border: 1px solid #ddd;
   cursor: grab;
-  width: 60px;
-  height: 40px;
+  width: 50px;
+  height: 30px;
   border-radius: 8px;
   line-height: 40px;
 }
