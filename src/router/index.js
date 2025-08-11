@@ -2,9 +2,9 @@
  * @Author: Sid Li
  * @Date: 2025-08-06 17:13:35
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-08 13:54:33
+ * @LastEditTime: 2025-08-11 08:55:08
  * @FilePath: \pic-demo-git\pic-demo\src\router\index.js
- * @Description: 
+ * @Description:
  */
 import { createWebHashHistory, createRouter } from "vue-router";
 import { encrypt, decrypt } from "@/utils/crypto";
@@ -22,6 +22,12 @@ const routes = [
     name: "Home",
     component: () => import("@/views/Home/home.vue"),
     meta: { requiresRole: 2 },
+  },
+
+  {
+    path: "/test",
+    name: "Test",
+    component: () => import("@/views/Home/test.vue"),
   },
 
   {
@@ -75,6 +81,3 @@ const router = createRouter({
 // });
 
 export default router;
-
-
-

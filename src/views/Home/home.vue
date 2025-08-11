@@ -2,7 +2,7 @@
  * @Author: Sid Li
  * @Date: 2025-08-07 08:52:11
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-09 14:10:02
+ * @LastEditTime: 2025-08-11 08:59:28
  * @FilePath: \pic-demo-git\pic-demo\src\views\Home\home.vue
  * @Description: 
 -->
@@ -23,7 +23,7 @@ import ImgShow from "@/components/img/ImgShow.vue";
 .container {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   width: 100vw;
 }
