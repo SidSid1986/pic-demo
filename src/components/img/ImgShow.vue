@@ -27,13 +27,15 @@
       <button @click="addTriangle" class="triangle-btn">🔺 添加三角形</button>
       <button @click="addText" class="text-btn">📝 添加文本</button>
       <button @click="exportImage" class="export-btn">📥 导出图片</button>
+      <button @click="setMode" :class="{ active: !isDrawing }">👆 选择</button>
+      <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
+      <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
       <button
-        @click="setFreeDrawingMode(false)"
-        :class="{ active: !isDrawing }"
+        @click="loadCanvas()"
+        style="margin-top: 4px; padding: 4px 8px; font-size: 12px"
       >
-        👆 选择
+        🔄 回显此状态
       </button>
-
       <!-- 🎨 颜色选择器 -->
       <input
         type="color"
@@ -76,6 +78,11 @@ const arrowDragStartPoint = ref(null);
 let previewGroup = null;
 let previewLine = null;
 let previewArrowHead = null;
+
+// 存储所有图片/画布状态，每个都有唯一 id 和 canvas 数据
+const canvasStates = ref([
+  // 初始可以为空，或者放一个默认项
+]);
 
 // 更新画笔颜色
 const updateBrushColor = () => {
@@ -159,34 +166,31 @@ const addTriangle = () =>
         { fill: "rgba(220, 53, 69, 0.4)", stroke: "#dc3545", strokeWidth: 2 }
       )
   );
-const addText = () =>
-  addShape(
-    () =>
-      new fabric.Text("双击编辑文字", {
-        left: 100,
-        top: 300,
-        fontSize: 20,
-        fill: "#333",
-        fontFamily: "Arial",
-        editable: true,
-      })
-  );
+const addText = () => {
+  if (!canvas) return;
+
+  // setMode(); // ✅ 先确保退出箭头模式，恢复 selection=true
+
+  const text = new fabric.IText("双击编辑文字", {
+    left: 100,
+    top: 300,
+    fontSize: 20,
+    fill: "#333",
+    fontFamily: "Arial",
+    editable: true,
+    selectable: true,
+  });
+
+  canvas.add(text);
+  canvas.setActiveObject(text);
+  canvas.renderAll();
+};
 
 const addShape = (factory) => {
   if (!canvas) return;
   const shape = factory();
   canvas.add(shape);
   canvas.setActiveObject(shape);
-};
-
-// 导出图片
-const exportImage = () => {
-  if (!canvas) return;
-  const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
-  const link = document.createElement("a");
-  link.download = `canvas-image-${Date.now()}.png`;
-  link.href = dataURL;
-  link.click();
 };
 
 // 箭头相关
@@ -342,9 +346,148 @@ const drawArrow = (startX, startY, endX, endY) => {
   });
 };
 
+// 设置为普通选择模式（退出自由绘制 / 画笔模式）
+const setMode = () => {
+  if (!canvas) return;
+
+  isDrawing.value = false; // 更新状态，用于按钮样式
+  canvas.isDrawingMode = false; // 重点：真正关闭自由绘制模式
+  canvas.freeDrawingBrush = null; // 可选：清理画笔对象
+  canvas.defaultCursor = "default"; // 恢复默认鼠标样式
+
+  canvas.selection = true; // ✅ 确保选中功能是开启的！
+};
+// 导出图片
+const exportImage = () => {
+  if (!canvas) return;
+  const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
+  const link = document.createElement("a");
+  link.download = `canvas-image-${Date.now()}.png`;
+  link.href = dataURL;
+  link.click();
+};
+
+// 删除当前选中的图形
+const deleteSelected = () => {
+  if (!canvas) return;
+
+  // 获取当前选中的对象
+  const activeObject = canvas.getActiveObject();
+
+  if (activeObject) {
+    // 如果有选中的对象，删除它
+    canvas.remove(activeObject);
+    canvas.discardActiveObject(); // 取消选中状态
+    canvas.renderAll(); // 刷新画布（通常不需要，但可确保 UI 同步）
+  } else {
+    // 可选：提示用户没有选中任何对象
+    console.log("请先选中要删除的图形");
+    // 或者用 UI 提示，比如弹窗 / Toast：提示“请先选中一个对象”
+  }
+};
+
+// 保存当前画布状态，生成一个新记录
+// 保存画布内容，固定使用 ID = "1"（简化逻辑，数据仍存数组里）
+// 保存画布内容，固定 ID = "1"，同时存到 Vue 和 localStorage
+const saveCanvas = () => {
+  if (!canvas) return;
+
+  const canvasData = canvas.toJSON(); // 当前画布所有内容
+
+  const state = {
+    id: "1", // 固定 ID，简化逻辑
+    name: "默认画布状态（ID=1）",
+    canvasData: canvasData,
+  };
+
+  // 1. 保存到 Vue 的响应式变量（用于 UI 展示等）
+  const existingIndex = canvasStates.value.findIndex((s) => s.id === "1");
+  if (existingIndex >= 0) {
+    canvasStates.value[existingIndex] = state;
+  } else {
+    canvasStates.value.push(state);
+  }
+
+  // 2. 保存到 localStorage（用于持久化，刷新不丢）
+  localStorage.setItem(
+    "savedCanvasState_1",
+    JSON.stringify(canvasStates.value)
+  );
+
+  console.log("✅ 画布已保存（固定ID=1），并写入 localStorage");
+  alert("✅ 画布已保存！（数据已存到本地，刷新页面也能回显）");
+};
+
+// 回显画布内容：从 localStorage 恢复保存的 canvasStates 数组，并加载其中 ID=1 的记录
+const loadCanvas = () => {
+  if (!canvas) return;
+
+  // 1. 从 localStorage 获取保存的数据
+  const savedStatesStr = localStorage.getItem("savedCanvasState_1");
+
+  // 2. 如果没保存过，提示用户
+  if (!savedStatesStr) {
+    console.log("❌ 本地存储中没有找到保存的画布状态");
+    alert("❌ 没有保存过画布状态，请先点击【保存】");
+    return;
+  }
+
+  let savedStates;
+
+  // 3. 安全解析 JSON，防止解析失败
+  try {
+    savedStates = JSON.parse(savedStatesStr);
+  } catch (e) {
+    console.error("解析本地存储数据失败", e);
+    alert("❌ 本地存储数据格式错误，无法加载");
+    return;
+  }
+
+  // 4. 检查 savedStates 是否是数组！你存的是 canvasStates.value（数组）
+  if (!Array.isArray(savedStates)) {
+    console.error("❌ 本地存储的数据不是数组", savedStates);
+    alert("❌ 本地存储的数据格式错误，应该是一个数组");
+    return;
+  }
+
+  // 5. 从数组中查找 id === "1" 的记录
+  const state = savedStates.find((s) => s && s.id === "1"); // 加 s && 避免 s 是 undefined/null
+
+  if (!state) {
+    console.log("❌ 没有找到 ID=1 的画布状态");
+    alert("❌ 没有找到 ID=1 的画布状态，请确认是否已保存");
+    return;
+  }
+
+  if (!state.canvasData) {
+    console.log("❌ ID=1 的画布状态中没有 canvasData");
+    alert("❌ 保存的数据不完整，缺少画布内容");
+    return;
+  }
+
+  // 6. （可选）同步回 Vue 的 canvasStates（如果你有 UI 列表要展示）
+  const existingIndex = canvasStates.value.findIndex((s) => s.id === "1");
+  if (existingIndex >= 0) {
+    canvasStates.value[existingIndex] = state;
+  } else {
+    canvasStates.value.push(state);
+  }
+
+  // 7. 加载画布数据
+  canvas.clear();
+  canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+
+  canvas.loadFromJSON(state.canvasData, () => {
+    canvas.renderAll();
+    console.log("✅ 画布已成功回显（来自 localStorage，ID=1）");
+    alert("✅ 画布已回显！（来自本地存储）");
+  });
+};
 // 初始化画布
 onMounted(() => {
   canvas = new fabric.Canvas(canvasEl.value, { width: 450, height: 800 });
+
+  // setArrowDragMode(false);
 
   fabric.Image.fromURL(bgImage, (img) => {
     if (!img) return console.error("背景图加载失败");
