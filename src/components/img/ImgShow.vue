@@ -11,7 +11,9 @@
     </div>
 
     <div class="toolbar">
-      <button @click="addRectangle" class="rectangle-btn">🔲 添加矩形</button>
+      <button @click="setRectangleDragMode(true)" class="rectangle-btn">
+        🔲 添加矩形
+      </button>
       <button @click="setFreeDrawingMode" :class="{ active: isDrawing }">
         ✏️ 画笔
       </button>
@@ -74,6 +76,11 @@ const brushSize = ref(3);
 const isArrowDragMode = ref(false);
 const arrowDragStartPoint = ref(null);
 
+// 矩形拖拽模式
+const isRectangleDragMode = ref(false);
+const rectangleDragStartPoint = ref(null);
+let previewRect = null;
+
 // 预览相关
 let previewGroup = null;
 let previewLine = null;
@@ -116,20 +123,105 @@ const setFreeDrawingMode = () => {
 };
 
 // 添加矩形
-const addRectangle = () => {
-  setMode();
-  addShape(
-    () =>
-      new fabric.Rect({
-        left: 50,
-        top: 50,
-        width: 100,
-        height: 80,
-        fill: "rgba(0, 123, 255, 0.3)",
-        stroke: "#007bff",
-        strokeWidth: 2,
-      })
-  );
+
+// 设置矩形拖拽模式
+const setRectangleDragMode = (isDragging) => {
+  setMode(); // 先确保退出其他模式（比如自由绘制）
+  isRectangleDragMode.value = isDragging;
+
+  if (isDragging) {
+    canvas.defaultCursor = "crosshair";
+    canvas.hoverCursor = "crosshair";
+    canvas.selection = false;
+    clearPreviewRectangle();
+  } else {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "default";
+    canvas.selection = true;
+    clearPreviewRectangle();
+  }
+};
+// 矩形拖拽相关鼠标事件
+const handleRectangleDragMouseDown = (opt) => {
+  if (!isRectangleDragMode.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  rectangleDragStartPoint.value = { x: pointer.x, y: pointer.y };
+  clearPreviewRectangle();
+};
+
+const handleRectangleDragMouseMove = (opt) => {
+  if (!isRectangleDragMode.value || !rectangleDragStartPoint.value) return;
+
+  const pointer = canvas.getPointer(opt.e);
+  const start = rectangleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+
+  // 1. 清除旧的预览
+  clearPreviewRectangle();
+
+  // 2. 创建新的预览矩形
+  previewRect = createPreviewRectangle(start.x, start.y, end.x, end.y);
+  if (previewRect) {
+    canvas.add(previewRect);
+    canvas.renderAll();
+  }
+};
+
+const handleRectangleDragMouseUp = (opt) => {
+  if (!isRectangleDragMode.value || !rectangleDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = rectangleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewRectangle();
+  const shape = drawRectangle(start.x, start.y, end.x, end.y);
+  if (shape) {
+    canvas.add(shape);
+    canvas.renderAll();
+  }
+  rectangleDragStartPoint.value = null;
+  setRectangleDragMode(false);
+};
+
+// 创建矩形预览（拖的过程中显示）
+const createPreviewRectangle = (startX, startY, endX, endY) => {
+  const width = endX - startX;
+  const height = endY - startY;
+  return new fabric.Rect({
+    left: startX,
+    top: startY,
+    width: Math.abs(width),
+    height: Math.abs(height),
+    fill: "rgba(0, 123, 255, 0.3)",
+    stroke: "#007bff",
+    strokeWidth: 2,
+    selectable: false,
+    evented: false,
+  });
+};
+// 绘制正式矩形（拖完后生成）
+const drawRectangle = (startX, startY, endX, endY) => {
+  const width = endX - startX;
+  const height = endY - startY;
+
+  return new fabric.Rect({
+    left: startX,
+    top: startY,
+    width: Math.abs(width),
+    height: Math.abs(height),
+    // fill: "rgba(0, 123, 255, 0.3)",
+    fill: "transparent",
+    stroke: "#007bff",
+    strokeWidth: 2,
+  });
+};
+
+// 清除矩形预览
+const clearPreviewRectangle = () => {
+  if (previewRect) {
+    canvas.remove(previewRect); // ✅ 移除实际的矩形对象
+    previewRect = null; // ✅ 清空引用
+    canvas.renderAll(); // ✅ 刷新画布
+  }
 };
 
 // 添加圆形
@@ -405,7 +497,6 @@ const deleteSelected = () => {
 };
 
 // 保存当前画布状态，生成一个新记录
-// 保存画布内容，固定使用 ID = "1"（简化逻辑，数据仍存数组里）
 // 保存画布内容，固定 ID = "1"，同时存到 Vue 和 localStorage
 const saveCanvas = () => {
   if (!canvas) return;
@@ -518,9 +609,18 @@ onMounted(() => {
     canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
   });
 
-  canvas.on("mouse:down", handleArrowDragMouseDown);
-  canvas.on("mouse:move", handleArrowDragMouseMove);
-  canvas.on("mouse:up", handleArrowDragMouseUp);
+  canvas.on("mouse:down", (opt) => {
+    handleArrowDragMouseDown(opt);
+    handleRectangleDragMouseDown(opt);
+  });
+  canvas.on("mouse:move", (opt) => {
+    handleArrowDragMouseMove(opt);
+    handleRectangleDragMouseMove(opt);
+  });
+  canvas.on("mouse:up", (opt) => {
+    handleArrowDragMouseUp(opt);
+    handleRectangleDragMouseUp(opt);
+  });
 });
 </script>
 
