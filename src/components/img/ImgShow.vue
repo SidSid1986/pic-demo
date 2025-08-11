@@ -17,8 +17,12 @@
       <button @click="setFreeDrawingMode" :class="{ active: isDrawing }">
         ✏️ 画笔
       </button>
-      <button @click="addCircle" class="circle-btn">⭕ 画圆</button>
-      <button @click="addEllipse" class="ellipse-btn">🥚 画椭圆</button>
+      <button @click="setCircleDragMode(true)" class="circle-btn">
+        ⭕ 画圆
+      </button>
+      <button @click="setEllipseDragMode(true)" class="ellipse-btn">
+        🥚 画椭圆
+      </button>
       <button
         @click="setArrowDragMode(true)"
         :class="{ active: isArrowDragMode }"
@@ -26,8 +30,10 @@
         🎯 拖拽实时箭头
       </button>
 
-      <button @click="addTriangle" class="triangle-btn">🔺 添加三角形</button>
-      <button @click="addText" class="text-btn">📝 添加文本</button>
+      <button @click="setTriangleDragMode(true)" class="triangle-btn">
+        🔺 添加三角形
+      </button>
+      <button @click="setTextMode(true)" class="text-btn">📝 添加文本</button>
       <button @click="exportImage" class="export-btn">📥 导出图片</button>
 
       <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
@@ -79,7 +85,22 @@ const arrowDragStartPoint = ref(null);
 // 矩形拖拽模式
 const isRectangleDragMode = ref(false);
 const rectangleDragStartPoint = ref(null);
-let previewRect = null;
+let previewRect = null; //清除预览
+
+// 圆形拖拽模式
+const isCircleDragMode = ref(false);
+const circleDragStartPoint = ref(null);
+let previewCircle = null;
+
+// 椭圆拖拽模式
+const isEllipseDragMode = ref(false);
+const ellipseDragStartPoint = ref(null);
+let previewEllipse = null; // 用于清除预览
+
+// 三角形拖拽模式
+const isTriangleDragMode = ref(false);
+const triangleDragStartPoint = ref(null);
+let previewTriangle = null; // 用于清除预览
 
 // 预览相关
 let previewGroup = null;
@@ -90,6 +111,9 @@ let previewArrowHead = null;
 const canvasStates = ref([
   // 初始可以为空，或者放一个默认项
 ]);
+
+// 文本模式（新增！）
+const isTextMode = ref(false);
 
 // 更新画笔颜色
 const updateBrushColor = () => {
@@ -224,74 +248,356 @@ const clearPreviewRectangle = () => {
   }
 };
 
-// 添加圆形
-const addCircle = () => {
-  setMode();
-  addShape(
-    () =>
-      new fabric.Circle({
-        left: 100,
-        top: 100,
-        radius: 40,
-        fill: "rgba(255, 193, 7, 0.4)",
-        stroke: "#ffc107",
-        strokeWidth: 2,
-      })
-  );
+// 设置圆形拖拽模式
+const setCircleDragMode = (isDragging) => {
+  setMode(); // 确保退出其他模式，比如自由绘制
+  isCircleDragMode.value = isDragging;
+
+  if (isDragging) {
+    canvas.defaultCursor = "crosshair";
+    canvas.hoverCursor = "crosshair";
+    canvas.selection = false;
+    clearPreviewCircle();
+  } else {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "default";
+    canvas.selection = true;
+    clearPreviewCircle();
+  }
 };
 
-// 添加椭圆
-const addEllipse = () => {
-  setMode();
-  addShape(
-    () =>
-      new fabric.Ellipse({
-        left: 100,
-        top: 200,
-        rx: 60,
-        ry: 40,
-        fill: "rgba(40, 167, 69, 0.4)",
-        stroke: "#28a745",
-        strokeWidth: 2,
-      })
-  );
+// 圆形拖拽 - 鼠标按下
+const handleCircleDragMouseDown = (opt) => {
+  if (!isCircleDragMode.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  circleDragStartPoint.value = { x: pointer.x, y: pointer.y };
+  clearPreviewCircle();
 };
 
-// 添加三角形
-const addTriangle = () => {
-  setMode();
-  addShape(
-    () =>
-      new fabric.Polygon(
-        [
-          { x: 100, y: 450 },
-          { x: 50, y: 520 },
-          { x: 150, y: 520 },
-        ],
-        { fill: "rgba(220, 53, 69, 0.4)", stroke: "#dc3545", strokeWidth: 2 }
-      )
+// 圆形拖拽 - 鼠标移动
+const handleCircleDragMouseMove = (opt) => {
+  if (!isCircleDragMode.value || !circleDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = circleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewCircle();
+  const circle = createPreviewCircle(start.x, start.y, end.x, end.y);
+  if (circle) {
+    previewCircle = circle;
+    canvas.add(circle);
+    canvas.renderAll();
+  }
+};
+
+// 圆形拖拽 - 鼠标松开
+const handleCircleDragMouseUp = (opt) => {
+  if (!isCircleDragMode.value || !circleDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = circleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewCircle();
+  const shape = drawCircle(start.x, start.y, end.x, end.y);
+  if (shape) {
+    canvas.add(shape);
+    canvas.renderAll();
+  }
+  circleDragStartPoint.value = null;
+  setCircleDragMode(false);
+};
+
+// 创建圆形预览（拖的过程中显示）
+const createPreviewCircle = (startX, startY, endX, endY) => {
+  const radius =
+    Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Circle({
+    left: cx - radius,
+    top: cy - radius,
+    radius: radius,
+    fill: "transparent", // ✅ 无填充
+    stroke: brushColor.value || "#007bff", // 可使用当前画笔颜色
+    strokeWidth: brushSize.value || 2,
+    selectable: false,
+    evented: false,
+  });
+};
+
+// 绘制正式圆形（拖拽结束后生成）
+const drawCircle = (startX, startY, endX, endY) => {
+  const radius =
+    Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Circle({
+    left: cx - radius,
+    top: cy - radius,
+    radius: radius,
+    fill: "transparent", // ✅ 无填充
+    stroke: brushColor.value || "#007bff",
+    strokeWidth: brushSize.value || 2,
+  });
+};
+
+// 清除圆形预览
+const clearPreviewCircle = () => {
+  if (previewCircle) {
+    canvas.remove(previewCircle);
+    previewCircle = null;
+    canvas.renderAll();
+  }
+};
+
+// 设置椭圆拖拽模式
+const setEllipseDragMode = (isDragging) => {
+  setMode(); // 确保退出其他模式，比如自由绘制
+  isEllipseDragMode.value = isDragging;
+
+  if (isDragging) {
+    canvas.defaultCursor = "crosshair";
+    canvas.hoverCursor = "crosshair";
+    canvas.selection = false;
+    clearPreviewEllipse();
+  } else {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "default";
+    canvas.selection = true;
+    clearPreviewEllipse();
+  }
+};
+
+// 椭圆拖拽 - 鼠标按下
+const handleEllipseDragMouseDown = (opt) => {
+  if (!isEllipseDragMode.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  ellipseDragStartPoint.value = { x: pointer.x, y: pointer.y };
+  clearPreviewEllipse();
+};
+
+// 椭圆拖拽 - 鼠标移动
+const handleEllipseDragMouseMove = (opt) => {
+  if (!isEllipseDragMode.value || !ellipseDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = ellipseDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewEllipse();
+  const ellipse = createPreviewEllipse(start.x, start.y, end.x, end.y);
+  if (ellipse) {
+    previewEllipse = ellipse;
+    canvas.add(ellipse);
+    canvas.renderAll();
+  }
+};
+
+// 椭圆拖拽 - 鼠标松开
+const handleEllipseDragMouseUp = (opt) => {
+  if (!isEllipseDragMode.value || !ellipseDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = ellipseDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewEllipse();
+  const shape = drawEllipse(start.x, start.y, end.x, end.y);
+  if (shape) {
+    canvas.add(shape);
+    canvas.renderAll();
+  }
+  ellipseDragStartPoint.value = null;
+  setEllipseDragMode(false);
+};
+
+// 创建椭圆预览（拖的过程中显示）
+const createPreviewEllipse = (startX, startY, endX, endY) => {
+  const rx = Math.abs(endX - startX) / 2;
+  const ry = Math.abs(endY - startY) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Ellipse({
+    left: cx - rx,
+    top: cy - ry,
+    rx: rx,
+    ry: ry,
+    fill: "transparent", // ✅ 无填充
+    stroke: brushColor.value || "#007bff", // 可使用当前画笔颜色
+    strokeWidth: brushSize.value || 2,
+    selectable: false,
+    evented: false,
+  });
+}; // 绘制正式椭圆（拖拽结束后生成）
+const drawEllipse = (startX, startY, endX, endY) => {
+  const rx = Math.abs(endX - startX) / 2;
+  const ry = Math.abs(endY - startY) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Ellipse({
+    left: cx - rx,
+    top: cy - ry,
+    rx: rx,
+    ry: ry,
+    fill: "transparent", // ✅ 无填充
+    stroke: brushColor.value || "#007bff",
+    strokeWidth: brushSize.value || 2,
+  });
+};
+
+// 清除椭圆预览
+const clearPreviewEllipse = () => {
+  if (previewEllipse) {
+    canvas.remove(previewEllipse);
+    previewEllipse = null;
+    canvas.renderAll();
+  }
+};
+
+// 设置三角形拖拽模式
+const setTriangleDragMode = (isDragging) => {
+  setMode(); // 确保退出其他模式，比如自由绘制
+  isTriangleDragMode.value = isDragging;
+
+  if (isDragging) {
+    canvas.defaultCursor = "crosshair";
+    canvas.hoverCursor = "crosshair";
+    canvas.selection = false;
+    clearPreviewTriangle();
+  } else {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "default";
+    canvas.selection = true;
+    clearPreviewTriangle();
+  }
+}; // 三角形拖拽 - 鼠标按下
+const handleTriangleDragMouseDown = (opt) => {
+  if (!isTriangleDragMode.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  triangleDragStartPoint.value = { x: pointer.x, y: pointer.y };
+  clearPreviewTriangle();
+};
+
+// 三角形拖拽 - 鼠标移动
+const handleTriangleDragMouseMove = (opt) => {
+  if (!isTriangleDragMode.value || !triangleDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = triangleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewTriangle();
+  const triangle = createPreviewTriangle(start.x, start.y, end.x, end.y);
+  if (triangle) {
+    previewTriangle = triangle;
+    canvas.add(triangle);
+    canvas.renderAll();
+  }
+};
+
+// 三角形拖拽 - 鼠标松开
+const handleTriangleDragMouseUp = (opt) => {
+  if (!isTriangleDragMode.value || !triangleDragStartPoint.value) return;
+  const pointer = canvas.getPointer(opt.e);
+  const start = triangleDragStartPoint.value;
+  const end = { x: pointer.x, y: pointer.y };
+  clearPreviewTriangle();
+  const shape = drawTriangle(start.x, start.y, end.x, end.y);
+  if (shape) {
+    canvas.add(shape);
+    canvas.renderAll();
+  }
+  triangleDragStartPoint.value = null;
+  setTriangleDragMode(false);
+};
+// 创建三角形预览（拖的过程中显示）
+const createPreviewTriangle = (startX, startY, endX, endY) => {
+  const size = Math.min(Math.abs(endX - startX), Math.abs(endY - startY)) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Polygon(
+    [
+      { x: cx, y: cy - size }, // 顶点
+      { x: cx - size, y: cy + size }, // 左下
+      { x: cx + size, y: cy + size }, // 右下
+    ],
+    {
+      fill: "transparent", // ✅ 无填充
+      stroke: brushColor.value || "#007bff", // 可使用当前画笔颜色
+      strokeWidth: brushSize.value || 2,
+      selectable: false,
+      evented: false,
+    }
   );
+}; // 绘制正式三角形（拖拽结束后生成）
+const drawTriangle = (startX, startY, endX, endY) => {
+  const size = Math.min(Math.abs(endX - startX), Math.abs(endY - startY)) / 2;
+  const cx = (startX + endX) / 2;
+  const cy = (startY + endY) / 2;
+
+  return new fabric.Polygon(
+    [
+      { x: cx, y: cy - size },
+      { x: cx - size, y: cy + size },
+      { x: cx + size, y: cy + size },
+    ],
+    {
+      fill: "transparent", // ✅ 无填充
+      stroke: brushColor.value || "#007bff",
+      strokeWidth: brushSize.value || 2,
+    }
+  );
+};
+// 清除三角形预览
+const clearPreviewTriangle = () => {
+  if (previewTriangle) {
+    canvas.remove(previewTriangle);
+    previewTriangle = null;
+    canvas.renderAll();
+  }
 };
 
 // 添加文本
-const addText = () => {
-  if (!canvas) return;
+// 设置文字输入模式
+const setTextMode = (isTexting) => {
+  isTextMode.value = isTexting;
 
-  setMode();
+  if (isTexting) {
+    canvas.defaultCursor = "text"; // 可选：鼠标样式
+    canvas.hoverCursor = "text";
+    canvas.selection = false;
+  } else {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "default";
+    canvas.selection = true;
+  }
+};
+// 鼠标在画布上按下（通用处理，包括文字模式）
+const handleCanvasMouseDown = (opt) => {
+  if (isTextMode.value) {
+    // 当前处于“添加文字”模式
+    const pointer = canvas.getPointer(opt.e);
+    const x = pointer.x;
+    const y = pointer.y;
 
-  const text = new fabric.IText("双击编辑文字", {
-    left: 100,
-    top: 300,
-    fontSize: 20,
-    fill: "#333",
-    fontFamily: "Arial",
-    editable: true,
-    selectable: true,
-  });
+    // 创建一个可编辑的文本框
+    const text = new fabric.IText("双击编辑文字", {
+      left: x,
+      top: y,
+      fontSize: 20,
+      fill: "#333",
+      fontFamily: "Arial",
+      editable: true,
+      selectable: true,
+    });
 
-  canvas.add(text);
-  canvas.setActiveObject(text);
-  canvas.renderAll();
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    canvas.renderAll();
+
+    // 退出文字模式
+    setTextMode(false);
+  }
+
+  // 注意：如果你还有其他模式的 mouse:down 处理，比如箭头/矩形，你仍然需要保留它们
+  // 你可以在这里调用它们，或者用模式判断分别调用
 };
 
 // 添加图形
@@ -612,14 +918,24 @@ onMounted(() => {
   canvas.on("mouse:down", (opt) => {
     handleArrowDragMouseDown(opt);
     handleRectangleDragMouseDown(opt);
+    handleCircleDragMouseDown(opt);
+    handleEllipseDragMouseDown(opt);
+    handleTriangleDragMouseDown(opt);
+    handleCanvasMouseDown(opt)
   });
   canvas.on("mouse:move", (opt) => {
     handleArrowDragMouseMove(opt);
     handleRectangleDragMouseMove(opt);
+    handleCircleDragMouseMove(opt);
+    handleEllipseDragMouseMove(opt);
+    handleTriangleDragMouseMove(opt);
   });
   canvas.on("mouse:up", (opt) => {
     handleArrowDragMouseUp(opt);
     handleRectangleDragMouseUp(opt);
+    handleCircleDragMouseUp(opt);
+    handleEllipseDragMouseUp(opt);
+    handleTriangleDragMouseUp(opt);
   });
 });
 </script>
