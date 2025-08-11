@@ -27,7 +27,7 @@
       <button @click="addTriangle" class="triangle-btn">🔺 添加三角形</button>
       <button @click="addText" class="text-btn">📝 添加文本</button>
       <button @click="exportImage" class="export-btn">📥 导出图片</button>
-      <button @click="setMode" :class="{ active: !isDrawing }">👆 选择</button>
+
       <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
       <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
       <button
@@ -115,8 +115,9 @@ const setFreeDrawingMode = () => {
   }
 };
 
-// 添加基础图形
-const addRectangle = () =>
+// 添加矩形
+const addRectangle = () => {
+  setMode();
   addShape(
     () =>
       new fabric.Rect({
@@ -129,7 +130,11 @@ const addRectangle = () =>
         strokeWidth: 2,
       })
   );
-const addCircle = () =>
+};
+
+// 添加圆形
+const addCircle = () => {
+  setMode();
   addShape(
     () =>
       new fabric.Circle({
@@ -141,7 +146,11 @@ const addCircle = () =>
         strokeWidth: 2,
       })
   );
-const addEllipse = () =>
+};
+
+// 添加椭圆
+const addEllipse = () => {
+  setMode();
   addShape(
     () =>
       new fabric.Ellipse({
@@ -154,7 +163,11 @@ const addEllipse = () =>
         strokeWidth: 2,
       })
   );
-const addTriangle = () =>
+};
+
+// 添加三角形
+const addTriangle = () => {
+  setMode();
   addShape(
     () =>
       new fabric.Polygon(
@@ -166,10 +179,13 @@ const addTriangle = () =>
         { fill: "rgba(220, 53, 69, 0.4)", stroke: "#dc3545", strokeWidth: 2 }
       )
   );
+};
+
+// 添加文本
 const addText = () => {
   if (!canvas) return;
 
-  // setMode(); // ✅ 先确保退出箭头模式，恢复 selection=true
+  setMode();
 
   const text = new fabric.IText("双击编辑文字", {
     left: 100,
@@ -186,6 +202,7 @@ const addText = () => {
   canvas.renderAll();
 };
 
+// 添加图形
 const addShape = (factory) => {
   if (!canvas) return;
   const shape = factory();
@@ -195,6 +212,7 @@ const addShape = (factory) => {
 
 // 箭头相关
 const setArrowDragMode = (isDragging) => {
+  setMode();
   isArrowDragMode.value = isDragging;
   if (isDragging) {
     canvas.defaultCursor = "crosshair";
