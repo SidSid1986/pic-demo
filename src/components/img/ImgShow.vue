@@ -833,6 +833,34 @@ const saveCanvas = () => {
   alert("✅ 画布已保存！（数据已存到本地，刷新页面也能回显）");
 };
 
+//只保存蒙版
+
+// const saveCanvas = () => {
+//   if (!canvas) return;
+
+//   // 获取所有绘制的图形对象
+//   const objects = canvas.getObjects(); // Fabric 对象数组
+
+//   const state = {
+//     id: "1",
+//     name: "默认画布状态（ID=1）",
+//     objects: objects, // 只存图形对象
+//   };
+
+//   // 保存到本地
+//   const existingIndex = canvasStates.value.findIndex((s) => s.id === "1");
+//   if (existingIndex >= 0) {
+//     canvasStates.value[existingIndex] = state;
+//   } else {
+//     canvasStates.value.push(state);
+//   }
+
+//   localStorage.setItem("savedCanvasState_1", JSON.stringify(canvasStates.value));
+
+//   console.log("✅ 蒙版（objects）已保存");
+//   alert("✅ 蒙版已保存！（只存了图形，不含背景图）");
+// };
+
 // 回显画布内容：从 localStorage 恢复保存的 canvasStates 数组，并加载其中 ID=1 的记录
 const loadCanvas = () => {
   if (!canvas) return;
@@ -898,6 +926,53 @@ const loadCanvas = () => {
     alert("✅ 画布已回显！（来自本地存储）");
   });
 };
+
+//只恢复蒙版
+// const loadCanvas = () => {
+//   if (!canvas) return;
+
+//   const savedStatesStr = localStorage.getItem("savedCanvasState_1");
+//   if (!savedStatesStr) {
+//     console.log("❌ 没有保存的蒙版");
+//     alert("❌ 没有保存过蒙版，请先点击【保存】");
+//     return;
+//   }
+
+//   let savedStates;
+//   try {
+//     savedStates = JSON.parse(savedStatesStr);
+//   } catch (e) {
+//     console.error("解析失败", e);
+//     alert("❌ 数据格式错误");
+//     return;
+//   }
+
+//   if (!Array.isArray(savedStates)) {
+//     console.error("不是数组");
+//     alert("❌ 数据格式错误");
+//     return;
+//   }
+
+//   const state = savedStates.find((s) => s && s.id === "1");
+//   if (!state || !state.objects || !Array.isArray(state.objects)) {
+//     console.log("❌ 没有找到有效的蒙版数据");
+//     alert("❌ 没有找到蒙版对象，请确认是否已保存");
+//     return;
+//   }
+
+//   // 清空画布并移除背景
+//   canvas.clear();
+//   canvas.setBackgroundImage(null);
+//   canvas.renderAll();
+
+//   // 只恢复用户画的图形（蒙版）
+//   canvas.add(...state.objects);
+//   canvas.renderAll();
+
+//   console.log("✅ 蒙版已成功回显！");
+//   alert("✅ 蒙版已回显！（不含背景图，只恢复图形）");
+// };
+
 // 初始化画布
 onMounted(() => {
   canvas = new fabric.Canvas(canvasEl.value, { width: 450, height: 800 });
@@ -921,7 +996,7 @@ onMounted(() => {
     handleCircleDragMouseDown(opt);
     handleEllipseDragMouseDown(opt);
     handleTriangleDragMouseDown(opt);
-    handleCanvasMouseDown(opt)
+    handleCanvasMouseDown(opt);
   });
   canvas.on("mouse:move", (opt) => {
     handleArrowDragMouseMove(opt);

@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, markRaw } from "vue";
+import { ref, markRaw, watch } from "vue";
 import { VueFlow, useVueFlow, MarkerType } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
@@ -101,6 +101,8 @@ import AnimatedEdge from "./AnimatedEdge.vue"; // 导入自定义动画边组件
 import CustomNode from "./CustomNode.vue"; // ← 根据你的路径调整
 import "@/styles/main.css";
 import "@vue-flow/core/dist/style.css";
+
+import { processImage } from "@/api/common";
 
 const nodes = ref([]);
 const edges = ref([]);
@@ -115,64 +117,86 @@ const nodeTypes = {
 const dark = ref(false);
 
 // 节点库模板
-const nodeTemplates = [
-  {
-    // type: "input",
-    type: "custom",
-    data: { label: "开始", type: "start" },
-    class: "my-custom-node-class",
-    // style: { backgroundColor: "pink", width: "60px", height: "40px" },
+// const nodeTemplates = [
+//   {
+//     // type: "input",
+//     type: "custom",
+//     data: { label: "开始", type: "start" },
+//     class: "my-custom-node-class",
+//     // style: { backgroundColor: "pink", width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤1", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤2", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤3", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤4", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤5", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "default",
+//     type: "custom",
+//     data: { label: "步骤6", type: "step" },
+//     class: "light",
+//     // style: { width: "60px", height: "40px" },
+//   },
+//   {
+//     // type: "output",
+//     type: "custom",
+//     data: { label: "结束", type: "end" },
+//     class: "light",
+//     // style: { backgroundColor: "pink", width: "60px", height: "40px" },
+//   },
+// ];
+
+const nodeTemplates = ref([]);
+
+const props = defineProps({
+  stepsData: {
+    type: Array,
+    default: () => [],
   },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤1", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤2", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤3", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤4", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤5", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "default",
-    type: "custom",
-    data: { label: "步骤6", type: "step" },
-    class: "light",
-    // style: { width: "60px", height: "40px" },
-  },
-  {
-    // type: "output",
-    type: "custom",
-    data: { label: "结束", type: "end" },
-    class: "light",
-    // style: { backgroundColor: "pink", width: "60px", height: "40px" },
-  },
-];
+});
+
+watch(
+  () => props.stepsData,
+  (stepsData) => {
+    console.log(stepsData);
+    // 创建节点
+    nodeTemplates.value = stepsData.map((step, idx) => ({
+      // id: `node-${step.id}`,
+      type: "custom",
+      data: { stepId: step.id, label: step.name, type: "step" },
+    }));
+  }
+);
 
 // 拖拽开始时，记录拖拽的节点类型
 function onDragStart(event, template, idx) {
@@ -630,6 +654,7 @@ function exportFlowJSON() {
       const fullPath = currentPath.map((id) => ({
         id,
         label: allNodes.find((n) => n.id === id)?.data?.label || "",
+        stepId: allNodes.find((n) => n.id === id)?.data?.stepId || "",
       }));
       steps.push(fullPath);
       continue;
@@ -649,6 +674,19 @@ function exportFlowJSON() {
 
   // 5. 只返回steps数组
   console.log("导出的步骤数据:", JSON.stringify(steps, null, 2));
+
+  const result = steps[0].map((item) => ({
+    name: item.label, // label → name
+    id: item.stepId, // stepId → id （已经是数字类型）
+  }));
+
+  console.log(result);
+
+  let data = [{ id: 3, name: "二值化" }];
+  processImage(data).then((res) => {
+    console.log(res);
+  });
+
   return steps;
 }
 
@@ -732,7 +770,10 @@ const onEdgeClick = (event) => {
   width: 50px;
   height: 30px;
   border-radius: 8px;
-  line-height: 40px;
+  /* line-height: 40px; */
+  white-space: normal;
+  word-break: break-all;
+  word-wrap: break-word;
 }
 
 .node-template:hover {

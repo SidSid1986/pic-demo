@@ -75,7 +75,7 @@ export default ({ mode }) => {
         "/FreeIeAPI": {
           target: env.VITE_APP_API_HOST,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/FreeIeAPI/, "FreeIeAPI"),
+          rewrite: (path) => path.replace(/^\/FreeIeAPI/, ""),
         },
       },
     },
