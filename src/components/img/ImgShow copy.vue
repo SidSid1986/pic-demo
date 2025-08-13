@@ -67,28 +67,19 @@
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button>
       </div>
     </div>
-    <div ref="exportWrapper" class="norem-img-wrapper">
+    <div class="norem-img-wrapper">
       <img
-        ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/get_fetch_image`"
         alt=""
-        @load="onImageLoad"
-        @error="onImageError"
       />
-      <!-- <img
-        ref="imageElement"
-        class="norem-img-content"
-        src="../../assets/222.jpg"
-        alt=""
-        @load="onImageLoad"
-      /> -->
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
+        width="600"
+        height="400"
         style="position: absolute; top: 0; left: 0; z-index: 100 !important"
       ></canvas>
-      <div class="noImg" v-if="noImg">图片加载失败</div>
     </div>
   </div>
 </template>
@@ -99,10 +90,6 @@ import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
 import { steps, fetchImage, processImage } from "@/api/common";
-
-import html2canvas from "html2canvas";
-
-const noImg = ref(false);
 
 const baseUrl = import.meta.env.VITE_APP_API_HOST;
 const predefineColors = ref([
@@ -125,15 +112,6 @@ const predefineColors = ref([
 // Refs
 const canvasEl = ref(null);
 let canvas = null;
-
-// 响应式元素引用
-const imgEl = ref(null);
-
-// 图片原始尺寸和显示尺寸
-let imageNaturalWidth = 0;
-let imageNaturalHeight = 0;
-let imageDisplayWidth = 0;
-let imageDisplayHeight = 0;
 
 // 画笔状态
 const isDrawing = ref(false);
@@ -833,42 +811,14 @@ const setMode = () => {
 
   canvas.selection = true; // ✅ 确保选中功能是开启的！
 };
-// 导出图片(canvas背景图是导入的img)
-// const exportImage = () => {
-//   if (!canvas) return;
-//   const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
-//   const link = document.createElement("a");
-//   link.download = `canvas-image-${Date.now()}.png`;
-//   link.href = dataURL;
-//   link.click();
-// };
-
-// 导出图片(canvas和img分开)
-
-const exportImage = async () => {
-  const wrapper = document.querySelector(".export-image-wrapper");
-
-  if (!wrapper) {
-    alert("未找到导出区域");
-    return;
-  }
-
-  try {
-    const canvas = await html2canvas(wrapper, {
-      backgroundColor: null, // 透明背景，如果需要白色背景可设置为 "#ffffff"
-      useCORS: true, // 如果有跨域图片可启用
-      allowTaint: true, // 允许加载跨域图片（慎用，最好确保图片同源）
-    });
-
-    // 创建下载链接
-    const link = document.createElement("a");
-    link.download = `full-export-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  } catch (error) {
-    console.error("导出失败：", error);
-    alert("导出失败，请重试");
-  }
+// 导出图片
+const exportImage = () => {
+  if (!canvas) return;
+  const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
+  const link = document.createElement("a");
+  link.download = `canvas-image-${Date.now()}.png`;
+  link.href = dataURL;
+  link.click();
 };
 
 // 删除当前选中的图形
@@ -1061,82 +1011,25 @@ const loadCanvas = () => {
 //   alert("✅ 蒙版已回显！（不含背景图，只恢复图形）");
 // };
 
-// 图片加载完成后的处理
-const onImageLoad = (event) => {
-  noImg.value = false;
-  const img = event.target; // <img> 元素
+// 初始化画布
+onMounted(() => {
+  fetchImage().then((res) => {});
 
-  if (!img) return;
+  canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
 
-  // 1. 获取原始宽高
-  imageNaturalWidth = img.naturalWidth;
-  imageNaturalHeight = img.naturalHeight;
+  // setArrowDragMode(false);
 
-  console.log("原始图片尺寸:", imageNaturalWidth, "x", imageNaturalHeight);
+  // fabric.Image.fromURL(bgImage, (img) => {
+  //   if (!img) return console.error("背景图加载失败");
+  //   img.set({
+  //     scaleX: canvas.width / img.width,
+  //     scaleY: canvas.height / img.height,
+  //     selectable: false,
+  //     evented: false,
+  //   });
+  //   canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+  // });
 
-  // 2. 计算最大允许缩放比例
-  const maxWidth = 400;
-  const maxHeight = 800;
-
-  const scaleByWidth = maxWidth / imageNaturalWidth;
-  const scaleByHeight = maxHeight / imageNaturalHeight;
-
-  // 3. 取最小缩放比例，保证宽和高都不超
-  const scale = Math.min(scaleByWidth, scaleByHeight);
-
-  // 4. 计算最终显示尺寸
-  imageDisplayWidth = imageNaturalWidth * scale;
-  imageDisplayHeight = imageNaturalHeight * scale;
-
-  console.log("约束后显示尺寸:", imageDisplayWidth, "x", imageDisplayHeight);
-
-  // 5. 【可选】设置 <img> 的 CSS 宽高（如果你希望页面上也按这个尺寸显示）
-  if (imgEl.value) {
-    imgEl.value.style.width = `${imageDisplayWidth}px`;
-    imgEl.value.style.height = `${imageDisplayHeight}px`;
-  }
-
-  // 6. 【必须】设置 <canvas> 的实际绘图尺寸（不是 CSS！是 fabric.Canvas 的 width/height 属性）
-  if (canvasEl.value) {
-    canvasEl.value.width = imageDisplayWidth;
-    canvasEl.value.height = imageDisplayHeight;
-
-    // 可选：让 canvas 盒子在页面上也显示为对应大小（通常与绘图尺寸一致）
-    canvasEl.value.style.width = `${imageDisplayWidth}px`;
-    canvasEl.value.style.height = `${imageDisplayHeight}px`;
-  }
-
-  // 7. 初始化 Fabric.js Canvas（必须在知道尺寸之后）
-  initFabricCanvas();
-};
-
-//图片加载失败
-const onImageError = (event) => {
-  console.error("❌ 图片加载失败！", event);
-  // 可以在这里提示用户、设置默认图、禁用功能等
-  noImg.value = true;
-};
-
-// 初始化 Fabric Canvas
-const initFabricCanvas = () => {
-  if (!canvasEl.value) return;
-
-  if (canvas) {
-    canvas.dispose(); // 销毁旧的，避免重复
-  }
-
-  canvas = new fabric.Canvas(canvasEl.value, {
-    width: imageDisplayWidth,
-    height: imageDisplayHeight,
-    backgroundColor: "transparent", // 可选
-  });
-
-  console.log(
-    "✅ Fabric Canvas 已初始化，尺寸:",
-    imageDisplayWidth,
-    "x",
-    imageDisplayHeight
-  );
   canvas.on("mouse:down", (opt) => {
     handleArrowDragMouseDown(opt);
     handleRectangleDragMouseDown(opt);
@@ -1159,49 +1052,6 @@ const initFabricCanvas = () => {
     handleEllipseDragMouseUp(opt);
     handleTriangleDragMouseUp(opt);
   });
-};
-
-// 初始化画布
-onMounted(() => {
-  fetchImage().then((res) => {});
-
-  // canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
-
-  // setArrowDragMode(false);
-
-  // fabric.Image.fromURL(bgImage, (img) => {
-  //   if (!img) return console.error("背景图加载失败");
-  //   img.set({
-  //     scaleX: canvas.width / img.width,
-  //     scaleY: canvas.height / img.height,
-  //     selectable: false,
-  //     evented: false,
-  //   });
-  //   canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-  // });
-
-  // canvas.on("mouse:down", (opt) => {
-  //   handleArrowDragMouseDown(opt);
-  //   handleRectangleDragMouseDown(opt);
-  //   handleCircleDragMouseDown(opt);
-  //   handleEllipseDragMouseDown(opt);
-  //   handleTriangleDragMouseDown(opt);
-  //   handleCanvasMouseDown(opt);
-  // });
-  // canvas.on("mouse:move", (opt) => {
-  //   handleArrowDragMouseMove(opt);
-  //   handleRectangleDragMouseMove(opt);
-  //   handleCircleDragMouseMove(opt);
-  //   handleEllipseDragMouseMove(opt);
-  //   handleTriangleDragMouseMove(opt);
-  // });
-  // canvas.on("mouse:up", (opt) => {
-  //   handleArrowDragMouseUp(opt);
-  //   handleRectangleDragMouseUp(opt);
-  //   handleCircleDragMouseUp(opt);
-  //   handleEllipseDragMouseUp(opt);
-  //   handleTriangleDragMouseUp(opt);
-  // });
 });
 </script>
 
@@ -1226,9 +1076,9 @@ onMounted(() => {
     // margin: 0; // 必须为 0
     // overflow: hidden; // 避免滚动干扰
     position: relative;
-
-    // height: 400px;
-    // width: 600px;
+    // background-color: red;
+    height: 400;
+    width: 600;
   }
 
   .norem-img-content {
@@ -1438,10 +1288,5 @@ onMounted(() => {
   color: #ffffff;
   border: 1px solid #ffffff;
   border-radius: 2px;
-}
-
-.noImg {
-  width: 400px;
-  height: 400px;
 }
 </style>
