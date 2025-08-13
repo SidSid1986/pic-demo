@@ -1,66 +1,85 @@
 <template>
   <div class="img-container">
-    <div class="img-wrapper">
+    <div class="toolbar">
+      <div class="free-content">
+        <div class="btn-free-pick">
+          <button
+            class="btn-free"
+            @click="setFreeDrawingMode"
+            :class="{ active: isDrawing }"
+          >
+            ✏️ 画笔
+          </button>
+          <!-- <el-color-picker
+            @change="updateBrushColor"
+            v-model="brushColor"
+            size="small"
+            show-alpha
+            :predefine="predefineColors"
+          /> -->
+          <input
+            class="color-picker"
+            type="color"
+            v-model="brushColor"
+            @input="updateBrushColor"
+            title="选择画笔颜色"
+          />
+        </div>
+        <div class="free-size">
+          <span>粗细: {{ brushSize }}px </span>
+          <input
+            class="brush-slider"
+            type="range"
+            min="1"
+            max="20"
+            v-model="brushSize"
+            @input="updateBrushSize"
+          />
+        </div>
+      </div>
+      <div class="tool-mid">
+        <button @click="setRectangleDragMode(true)" class="rectangle-btn">
+          🔲 矩形
+        </button>
+        <button @click="setCircleDragMode(true)" class="circle-btn">
+          ⭕ 圆
+        </button>
+        <button @click="setEllipseDragMode(true)" class="ellipse-btn">
+          🥚 椭圆
+        </button>
+        <button
+          @click="setArrowDragMode(true)"
+          :class="{ active: isArrowDragMode }"
+        >
+          🎯 箭头
+        </button>
+
+        <button @click="setTriangleDragMode(true)" class="triangle-btn">
+          🔺 三角形
+        </button>
+        <button @click="setTextMode(true)" class="text-btn">📝文本</button>
+      </div>
+      <div class="too-edit">
+        <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
+        <button @click="exportImage" class="export-btn">📥 导出图片</button>
+
+        <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
+        <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button>
+      </div>
+    </div>
+    <div class="norem-img-wrapper">
+      <img
+        class="norem-img-content"
+        :src="`${baseUrl}/get_fetch_image`"
+        alt=""
+      />
       <canvas
         ref="canvasEl"
-        id="fabric-canvas"
-        width="450"
-        height="800"
+        class="fabric-canvas"
+        width="600"
+        height="400"
+        style="position: absolute; top: 0; left: 0; z-index: 100 !important"
       ></canvas>
-      <!-- <img class="img-content" src="@/assets/123.jpg" alt="" /> -->
-    </div>
-
-    <div class="toolbar">
-      <button @click="setRectangleDragMode(true)" class="rectangle-btn">
-        🔲 添加矩形
-      </button>
-      <button @click="setFreeDrawingMode" :class="{ active: isDrawing }">
-        ✏️ 画笔
-      </button>
-      <button @click="setCircleDragMode(true)" class="circle-btn">
-        ⭕ 画圆
-      </button>
-      <button @click="setEllipseDragMode(true)" class="ellipse-btn">
-        🥚 画椭圆
-      </button>
-      <button
-        @click="setArrowDragMode(true)"
-        :class="{ active: isArrowDragMode }"
-      >
-        🎯 拖拽实时箭头
-      </button>
-
-      <button @click="setTriangleDragMode(true)" class="triangle-btn">
-        🔺 添加三角形
-      </button>
-      <button @click="setTextMode(true)" class="text-btn">📝 添加文本</button>
-      <button @click="exportImage" class="export-btn">📥 导出图片</button>
-
-      <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
-      <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
-      <button
-        @click="loadCanvas()"
-        style="margin-top: 4px; padding: 4px 8px; font-size: 12px"
-      >
-        🔄 回显此状态
-      </button>
-      <!-- 🎨 颜色选择器 -->
-      <input
-        type="color"
-        v-model="brushColor"
-        @input="updateBrushColor"
-        title="选择画笔颜色"
-      />
-
-      <!-- 📏 画笔粗细 -->
-      <label>粗细: {{ brushSize }}px</label>
-      <input
-        type="range"
-        min="1"
-        max="20"
-        v-model="brushSize"
-        @input="updateBrushSize"
-      />
     </div>
   </div>
 </template>
@@ -70,6 +89,25 @@ import { ref, onMounted } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
+import { steps, fetchImage, processImage } from "@/api/common";
+
+const baseUrl = import.meta.env.VITE_APP_API_HOST;
+const predefineColors = ref([
+  "#ff4500",
+  "#ff8c00",
+  "#ffd700",
+  "#90ee90",
+  "#00ced1",
+  "#1e90ff",
+  "#c71585",
+  "rgba(255, 69, 0, 0.68)",
+  "rgb(255, 120, 0)",
+  "hsv(51, 100, 98)",
+  "hsva(120, 40, 94, 0.5)",
+  "hsl(181, 100%, 37%)",
+  "hsla(209, 100%, 56%, 0.73)",
+  "#c7158577",
+]);
 
 // Refs
 const canvasEl = ref(null);
@@ -975,20 +1013,22 @@ const loadCanvas = () => {
 
 // 初始化画布
 onMounted(() => {
-  canvas = new fabric.Canvas(canvasEl.value, { width: 450, height: 800 });
+  fetchImage().then((res) => {});
+
+  canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
 
   // setArrowDragMode(false);
 
-  fabric.Image.fromURL(bgImage, (img) => {
-    if (!img) return console.error("背景图加载失败");
-    img.set({
-      scaleX: canvas.width / img.width,
-      scaleY: canvas.height / img.height,
-      selectable: false,
-      evented: false,
-    });
-    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-  });
+  // fabric.Image.fromURL(bgImage, (img) => {
+  //   if (!img) return console.error("背景图加载失败");
+  //   img.set({
+  //     scaleX: canvas.width / img.width,
+  //     scaleY: canvas.height / img.height,
+  //     selectable: false,
+  //     evented: false,
+  //   });
+  //   canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+  // });
 
   canvas.on("mouse:down", (opt) => {
     handleArrowDragMouseDown(opt);
@@ -1018,49 +1058,235 @@ onMounted(() => {
 <style lang="scss" scoped>
 .img-container {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: flex-start;
   align-items: center;
 
   height: 100vh;
   width: 49vw;
+  border: 1px solid pink;
+  box-sizing: border-box;
 
-  .img-wrapper {
-    display: inline-block; // 或 block
+  // background-color: red;;
+
+  .norem-img-wrapper {
+    // display: block; // 或 block
     border: 1px solid pink; // 可视化边界（调试用，可删）
-    padding: 0; // 必须为 0
-    margin: 0; // 必须为 0
+    // padding: 0; // 必须为 0
+    // margin: 0; // 必须为 0
     // overflow: hidden; // 避免滚动干扰
+    position: relative;
+    // background-color: red;
+    height: 400;
+    width: 600;
   }
 
-  .img-wrapper .norem {
-    height: 800px;
-    width: 450px;
+  .norem-img-content {
+    z-index: 1;
+    // width: 100%; // 宽度填满父容器
+    // height: 100%; // 高度按比例自适应
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 400px;
+    width: auto;
+    height: auto;
+    display: block;
   }
-  .img-content {
-    display: inline-block;
-    width: 100%; // 宽度填满父容器
-    height: 100%; // 高度按比例自适应
+
+  .fabric-canvas {
+    position: absolute;
+    // z-index: 100 !important;
+    top: 0;
+    left: 0;
+  }
+
+  .toolbar {
+    width: 46vw;
+    height: 60px;
+    padding: 5px 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    box-sizing: border-box;
+    background: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+
+    .free-content {
+      // border: 1px solid red;
+      width: 80px;
+      height: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      .btn-free-pick {
+        // border: 1px solid red;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        height: 20px;
+        width: 100%;
+      }
+
+      .btn-free {
+        width: 50px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      /* 颜色选择器美化 */
+      .color-picker {
+        width: 40px;
+        height: 22px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      .free-size {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        span {
+          width: 60px;
+          display: inline-block;
+          font-size: 8px;
+        }
+      }
+
+      /* 滑块美化 */
+      .brush-slider {
+        // border: 1px solid red;
+        width: 50px;
+        height: 6px;
+        border-radius: 3px;
+        background: #ddd;
+        outline: none;
+        cursor: pointer;
+
+        &::-webkit-slider-thumb {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #007bff;
+          cursor: pointer;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        &::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #007bff;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+
+    .tool-mid {
+      margin: 0 10px;
+      // border: 1px solid red;
+      width: 160px;
+      height: 40px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      button {
+        cursor: pointer;
+        width: 50px;
+        height: 18px;
+      }
+    }
+
+    .too-edit {
+      // border: 1px solid red;
+      width: 130px;
+      height: 40px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      button {
+        width: 60px;
+        height: 18px;
+      }
+    }
+
+    /* 特殊按钮样式（可选，你可以进一步定制颜色） */
+    .export-btn {
+      cursor: pointer;
+      background: #28a745;
+      color: white;
+
+      &:hover {
+        background: #218838;
+      }
+    }
+
+    .delete-btn {
+      cursor: pointer;
+      background: #dc3545;
+      color: white;
+
+      &:hover {
+        background: #c82333;
+      }
+    }
+
+    .save-btn {
+      cursor: pointer;
+      background: #17a2b8;
+      color: white;
+
+      &:hover {
+        background: #138496;
+      }
+    }
+
+    .load-btn {
+      cursor: pointer;
+      background: #17a2b8;
+      color: white;
+
+      &:hover {
+        background: #138496;
+      }
+    }
   }
 }
 
-.drawing-board {
-  text-align: center;
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
-.toolbar {
-  margin-bottom: 10px;
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
 }
-.toolbar button {
-  margin: 0 5px;
-  padding: 8px 16px;
-  cursor: pointer;
-}
-.toolbar button.active {
+
+.active {
   background-color: #007bff;
-  color: white;
-}
-canvas {
-  display: block;
-  // border: 1px solid red;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  border-radius: 2px;
 }
 </style>

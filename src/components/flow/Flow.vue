@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, markRaw, watch } from "vue";
+import { ref, markRaw, watch, onMounted } from "vue";
 import { VueFlow, useVueFlow, MarkerType } from "@vue-flow/core";
 import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
@@ -101,8 +101,7 @@ import AnimatedEdge from "./AnimatedEdge.vue"; // 导入自定义动画边组件
 import CustomNode from "./CustomNode.vue"; // ← 根据你的路径调整
 import "@/styles/main.css";
 import "@vue-flow/core/dist/style.css";
-
-import { processImage } from "@/api/common";
+import { processImage, steps } from "@/api/common";
 
 const nodes = ref([]);
 const edges = ref([]);
@@ -178,25 +177,37 @@ const dark = ref(false);
 
 const nodeTemplates = ref([]);
 
-const props = defineProps({
-  stepsData: {
-    type: Array,
-    default: () => [],
-  },
-});
+// const props = defineProps({
+//   stepsData: {
+//     type: Array,
+//     default: () => [],
+//   },
+// });
 
-watch(
-  () => props.stepsData,
-  (stepsData) => {
-    console.log(stepsData);
-    // 创建节点
-    nodeTemplates.value = stepsData.map((step, idx) => ({
+// watch(
+//   () => props.stepsData,
+//   (stepsData) => {
+//     console.log(stepsData);
+//     // 创建节点
+//     nodeTemplates.value = stepsData.map((step, idx) => ({
+//       // id: `node-${step.id}`,
+//       type: "custom",
+//       data: { stepId: step.id, label: step.name, type: "step" },
+//     }));
+//   }
+// );
+
+function getSteps() {
+  steps().then((res) => {
+    console.log(res);
+
+    nodeTemplates.value = res.map((step, idx) => ({
       // id: `node-${step.id}`,
       type: "custom",
       data: { stepId: step.id, label: step.name, type: "step" },
     }));
-  }
-);
+  });
+}
 
 // 拖拽开始时，记录拖拽的节点类型
 function onDragStart(event, template, idx) {
@@ -730,6 +741,10 @@ const onEdgeClick = (event) => {
     },
   }));
 };
+
+onMounted(() => {
+  getSteps();
+});
 </script>
 
 <style scoped>

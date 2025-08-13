@@ -2,7 +2,7 @@
  * @Author: Sid Li
  * @Date: 2025-08-08 10:28:51
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-12 14:10:29
+ * @LastEditTime: 2025-08-13 13:34:42
  * @FilePath: \pic-demo-git\pic-demo\src\api\common.js
  * @Description:
  */
@@ -16,13 +16,13 @@ export function steps() {
   });
 }
 
-// export function processImage() {
-//   return request({
-//     url: "/FreeIeAPI/process_image",
-//     method: "get",
-//   });
-// }
-//连接对应网络
+export function fetchImage() {
+  return request({
+    url: "/FreeIeAPI/get_fetch_image",
+    method: "get",
+  });
+}
+
 export function processImage(data) {
   return request({
     url: "FreeIeAPI/process_image",
