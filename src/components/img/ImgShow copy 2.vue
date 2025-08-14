@@ -68,18 +68,10 @@
       </div>
     </div>
     <div ref="exportWrapper" class="img-wrapper export-image-wrapper">
-      <!-- <img
+      <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/get_fetch_image`"
-        alt=""
-        @load="onImageLoad"
-        @error="onImageError"
-      /> -->
-        <img
-        ref="imageElement"
-        class="norem-img-content"
-        :src="`${baseUrl}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
@@ -112,10 +104,8 @@ import html2canvas from "html2canvas";
 
 const noImg = ref(false);
 const isImageReady = ref(false);
-const imageElement = ref(null);
 
-// const baseUrl = import.meta.env.VITE_APP_API_HOST;
-const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
+const baseUrl = import.meta.env.VITE_APP_API_HOST;
 const predefineColors = ref([
   "#ff4500",
   "#ff8c00",
@@ -884,70 +874,41 @@ const setMode = () => {
 // };
 
 //实时图片
-// ✅ 导出按钮点击时调用的方法
-const exportImage = () => {
-  if (!imageElement.value || !canvas) {
-    alert("❌ 图片或画布未初始化，请稍后再试");
+const exportImage = async () => {
+  const wrapper = document.querySelector(".export-image-wrapper");
+
+  if (!wrapper) {
+    alert("未找到导出区域");
     return;
   }
 
-  const imgEl = imageElement.value; // <img ref="imageElement">
-  const fabricCanvas = canvas; // 你的 Fabric.js canvas 实例
-
-  if (!imgEl.complete || !imgEl.naturalWidth) {
-    alert("⚠️ 当前图片尚未加载完成，请稍后重试导出");
+  // ✅ 关键：判断图片是否已经加载完成
+  if (!isImageReady.value) {
+    alert("⚠️ 图片尚未加载完成，请稍后再试导出");
     return;
   }
 
-  // 1. 创建一个离屏 canvas（用于最终导出）
-  const exportCanvas = document.createElement("canvas");
-  const ctx = exportCanvas.getContext("2d");
+  try {
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: null, // 透明背景
+      useCORS: true, // 允许加载跨域图片（比如你的 API 图）
+      allowTaint: false, // 禁止污染画布，确保能导出
+      imageTimeout: 10000, // 图片加载超时时间，设长一点，避免实时图未加载出来
+      scale: 1, // 可设为 2 提升清晰度，但文件更大
+      logging: false, // 设为 true 可看到 html2canvas 内部日志（调试用）
+    });
 
-  // 2. 设置导出 canvas 的尺寸为图片尺寸（或者你也可以用固定画布尺寸）
-  exportCanvas.width = imgEl.naturalWidth; // 或者 imageDisplayWidth，如果你缩放过
-  exportCanvas.height = imgEl.naturalHeight;
+    // 创建下载链接
+    const link = document.createElement("a");
+    link.download = `full-export-${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
 
-  // 3. 先绘制实时图像（当前 img 标签的帧）
-  ctx.drawImage(imgEl, 0, 0, exportCanvas.width, exportCanvas.height);
-
-  // 4. 再将 Fabric.js 的内容也绘制到该 canvas 上
-  // 方法：使用 fabric.Canvas 的 lowerCanvasEl（即实际渲染的 canvas），直接 drawImage 到目标 canvas
-  const fabricCanvasElement = fabricCanvas.getElement(); // 获取 fabric 底层 canvas DOM
-  if (fabricCanvasElement) {
-    // 可选：如果你的 fabric 画布尺寸和图片不一致，可以调整绘制位置和大小
-    ctx.drawImage(
-      fabricCanvasElement,
-      0,
-      0,
-      fabricCanvasElement.width,
-      fabricCanvasElement.height,
-      0,
-      0,
-      exportCanvas.width,
-      exportCanvas.height // 你可以调整位置，比如居中等
-    );
-  } else {
-    console.warn("⚠️ 无法获取 Fabric.js 的底层 canvas，仅导出背景图");
+    console.log("✅ 图片导出成功");
+  } catch (error) {
+    console.error("导出失败：", error);
+    alert("❌ 导出失败，请重试");
   }
-
-  // 5. 导出为 PNG
-  exportCanvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `exported-image-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, "image/png");
-
-  // 或者用 toDataURL 直接下载（备选）
-  // const dataURL = exportCanvas.toDataURL("image/png");
-  // const link = document.createElement("a");
-  // link.download = `exported-image-${Date.now()}.png`;
-  // link.href = dataURL;
-  // link.click();
 };
 
 // 删除当前选中的图形

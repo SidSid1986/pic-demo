@@ -2,9 +2,9 @@
  * @Author: Sid Li
  * @Date: 2025-08-08 10:28:51
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-14 09:06:11
+ * @LastEditTime: 2025-08-14 16:07:47
  * @FilePath: \pic-demo-git\pic-demo\vite.config.js
- * @Description: 
+ * @Description:
  */
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
@@ -77,13 +77,28 @@ export default ({ mode }) => {
 
     base: "./", // 设置基础路径，用于生成静态资源的URL
     server: {
-      host: "0.0.0.0", // 监听所有网络接口
-      port: 9106, // 端口号
+      host: "0.0.0.0",
+      port: 9106,
       proxy: {
         "/FreeIeAPI": {
           target: env.VITE_APP_API_HOST,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/FreeIeAPI/, ""),
+        },
+        "/get_fetch_image": {
+          target: env.VITE_APP_API_HOST, // http://192.168.3.154:8000
+          changeOrigin: true,
+          rewrite: (path) => {
+            // ✅ 如果你的后端接口就是 /get_fetch_image，那不需要 rewrite，或者写成：
+            return "/get_fetch_image"; // 或者 return path; 根据实际情况
+            // 如果你的真实图片 API 路径是比如 /api/camera/frame，请按需 rewrite
+          },
+          configure: (proxy, options) => {
+            proxy.on("proxyRes", function (proxyRes, req, res) {
+              // ✅ 关键：添加 CORS 头，让图片可被 canvas 使用
+              proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+            });
+          },
         },
       },
     },
