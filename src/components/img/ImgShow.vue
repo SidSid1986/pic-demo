@@ -51,7 +51,7 @@
           @click="setArrowDragMode(true)"
           :class="{ active: isArrowDragMode }"
         >
-          🎯 箭头
+          ​​➡️​​ 箭头
         </button>
 
         <button @click="setTriangleDragMode(true)" class="triangle-btn">
@@ -68,21 +68,21 @@
       </div>
     </div>
     <div ref="exportWrapper" class="norem-img-wrapper">
-      <img
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/get_fetch_image`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      />
-      <!-- <img
+      /> -->
+      <img
         ref="imageElement"
         class="norem-img-content"
         src="../../assets/222.jpg"
         alt=""
         @load="onImageLoad"
-      /> -->
+      />
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
@@ -1220,15 +1220,10 @@ onMounted(() => {
   // background-color: red;;
 
   .norem-img-wrapper {
-    // display: block; // 或 block
     border: 1px solid pink; // 可视化边界（调试用，可删）
-    // padding: 0; // 必须为 0
-    // margin: 0; // 必须为 0
-    // overflow: hidden; // 避免滚动干扰
     position: relative;
-
-    // height: 400px;
-    // width: 600px;
+    width: 600px;
+    height: 800px;
   }
 
   .norem-img-content {
@@ -1253,7 +1248,7 @@ onMounted(() => {
 
   .toolbar {
     width: 46vw;
-    height: 60px;
+    height: 100px;
     padding: 5px 20px;
     display: flex;
     flex-direction: row;
@@ -1266,8 +1261,8 @@ onMounted(() => {
 
     .free-content {
       // border: 1px solid red;
-      width: 80px;
-      height: 40px;
+      width: 200px;
+      height: 80px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1278,20 +1273,22 @@ onMounted(() => {
         flex-direction: row;
         justify-content: flex-start;
         align-items: center;
-        height: 20px;
+        height: 40px;
         width: 100%;
       }
 
       .btn-free {
-        width: 50px;
-        height: 18px;
+        width: 100px;
+        height: 40px;
+        line-height: 40px;
+        font-size: 18px;
         cursor: pointer;
       }
 
       /* 颜色选择器美化 */
       .color-picker {
-        width: 40px;
-        height: 22px;
+        width: 80px;
+        height: 40px;
         border: none;
         border-radius: 6px;
         cursor: pointer;
@@ -1299,22 +1296,24 @@ onMounted(() => {
       }
 
       .free-size {
+        // border: 1px solid red;
+        height: 40px;
         display: flex;
         flex-direction: row;
         width: 100%;
         justify-content: space-between;
         align-items: center;
         span {
-          width: 60px;
+          width: 100px;
           display: inline-block;
-          font-size: 8px;
+          font-size: 16px;
         }
       }
 
       /* 滑块美化 */
       .brush-slider {
         // border: 1px solid red;
-        width: 50px;
+        width: 100px;
         height: 6px;
         border-radius: 3px;
         background: #ddd;
@@ -1346,8 +1345,8 @@ onMounted(() => {
     .tool-mid {
       margin: 0 10px;
       // border: 1px solid red;
-      width: 160px;
-      height: 40px;
+      width: 260px;
+      height: 80px;
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -1355,23 +1354,27 @@ onMounted(() => {
       flex-wrap: wrap;
       button {
         cursor: pointer;
-        width: 50px;
-        height: 18px;
+        line-height: 30px;
+        font-size: 16px;
+        width: 80px;
+        height: 30px;
       }
     }
 
     .too-edit {
       // border: 1px solid red;
-      width: 130px;
-      height: 40px;
+      width: 220px;
+      height: 80px;
       display: flex;
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       button {
-        width: 60px;
-        height: 18px;
+        width: 100px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 16px;
       }
     }
 
@@ -1380,6 +1383,8 @@ onMounted(() => {
       cursor: pointer;
       background: #28a745;
       color: white;
+      border: 1px solid #28a745;
+      border-radius: 6px;
 
       &:hover {
         background: #218838;
@@ -1390,6 +1395,8 @@ onMounted(() => {
       cursor: pointer;
       background: #dc3545;
       color: white;
+      border: 1px solid #dc3545;
+      border-radius: 6px;
 
       &:hover {
         background: #c82333;
@@ -1400,6 +1407,8 @@ onMounted(() => {
       cursor: pointer;
       background: #17a2b8;
       color: white;
+      border: 1px solid #17a2b8;
+      border-radius: 6px;
 
       &:hover {
         background: #138496;
@@ -1410,6 +1419,8 @@ onMounted(() => {
       cursor: pointer;
       background: #17a2b8;
       color: white;
+      border: 1px solid #17a2b8;
+      border-radius: 6px;
 
       &:hover {
         background: #138496;

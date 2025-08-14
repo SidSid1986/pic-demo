@@ -78,11 +78,12 @@ const handleSourceStyle = {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 30px;
+  width: 80px;
+  height: 40px;
   border-radius: 8px;
   background-color: green;
   border: 1px solid #ddd;
+  color: #ffffff;
 }
 
 .custom-node-start {
@@ -96,7 +97,7 @@ const handleSourceStyle = {
 .node-label {
   pointer-events: none;
   user-select: none;
-  font-size: 10px;
+  font-size: 16px;
   text-align: center;
 }
 

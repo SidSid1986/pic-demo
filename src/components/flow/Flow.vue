@@ -2,13 +2,17 @@
   <div class="flow-container">
     <!-- 节点库 -->
     <div class="flow-menu">
-      <button @click="exportFlowJSON" style="margin: 12px">导出流程JSON</button>
-      <button @click="deleteSelectedEdge">删除选中连线</button>
-      <button @click="deleteSelectedNode">删除选中节点</button>
-      <button @click="startFlowAnimation" style="margin-top: 12px">
-        开始流程动画
+      <button @click="exportFlowJSON" class="export-btn">📥导出流程</button>
+      <button class="delete-btn" @click="deleteSelectedEdge">
+        🗑️ 删除连线
       </button>
-      <h3>节点库</h3>
+      <button class="delete-btn" @click="deleteSelectedNode">
+        🗑️ 删除节点
+      </button>
+      <!-- <button @click="startFlowAnimation" style="margin-top: 12px">
+        开始流程动画
+      </button> -->
+      <!-- <div>节点库</div> -->
       <div class="node-templates-container">
         <div
           v-for="(item, idx) in nodeTemplates"
@@ -725,7 +729,7 @@ const onNodeClick = (event) => {
 //   selectedEdges.value = [params.edge.id];
 // }
 
-const onEdgeClick = (event) => {
+function onEdgeClick(event) {
   console.log(event.edge);
   const edgeId = event.edge.id;
   selectedEdges.value = [event.edge.id];
@@ -740,7 +744,7 @@ const onEdgeClick = (event) => {
       // color: edge.id === edgeId ? '#ff0000' : undefined,
     },
   }));
-};
+}
 
 onMounted(() => {
   getSteps();
@@ -762,6 +766,39 @@ onMounted(() => {
   border: 1px solid pink;
 }
 
+.delete-btn {
+  width: 120px;
+  height: 50px;
+  line-height: 50px;
+  margin: 3px 0;
+  cursor: pointer;
+  background: #dc3545;
+  color: white;
+  font-size: 20px;
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+
+  &:hover {
+    background: #c82333;
+  }
+}
+.export-btn {
+  width: 120px;
+  height: 50px;
+  line-height: 50px;
+  margin: 3px 0;
+  cursor: pointer;
+  background: #28a745;
+  border: 1px solid #28a745;
+  border-radius: 8px;
+  color: white;
+  font-size: 20px;
+
+  &:hover {
+    background: #218838;
+  }
+}
+
 .flow-content {
   height: 100vh;
   width: 40vw;
@@ -770,6 +807,7 @@ onMounted(() => {
 }
 
 .node-templates-container {
+  margin-top: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -782,9 +820,10 @@ onMounted(() => {
   background: #fff;
   border: 1px solid #ddd;
   cursor: grab;
-  width: 50px;
-  height: 30px;
-  border-radius: 8px;
+  width: 120px;
+  height: 60px;
+  line-height: 60px;
+  border-radius: 10px;
   /* line-height: 40px; */
   white-space: normal;
   word-break: break-all;

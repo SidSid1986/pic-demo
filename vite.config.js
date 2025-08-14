@@ -1,3 +1,11 @@
+/*
+ * @Author: Sid Li
+ * @Date: 2025-08-08 10:28:51
+ * @LastEditors: Sid Li
+ * @LastEditTime: 2025-08-14 09:06:11
+ * @FilePath: \pic-demo-git\pic-demo\vite.config.js
+ * @Description: 
+ */
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import viteImagemin from "vite-plugin-imagemin";
@@ -41,7 +49,7 @@ export default ({ mode }) => {
         plugins: [
           postCssPxToRem({
             // 自适应，px>rem转换
-            rootValue: 102.4, //pc端建议：192，移动端建议：75；设计稿宽度的1 / 10
+            rootValue: 192, //pc端建议：192，移动端建议：75；设计稿宽度的1 / 10
             propList: ["*", "!border"], // 除 border 外所有px 转 rem // 需要转换的属性，这里选择全部都进行转换
             selectorBlackList: ["norem"], // 过滤掉norem-开头的class，不进行rem转换，这个内容可以不写
             unitPrecision: 5, // 转换后的精度，即小数点位数
