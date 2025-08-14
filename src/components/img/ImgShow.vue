@@ -67,22 +67,22 @@
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button>
       </div>
     </div>
-    <div ref="exportWrapper" class="norem-img-wrapper">
-      <!-- <img
+    <div ref="exportWrapper" class="img-wrapper">
+      <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/get_fetch_image`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      /> -->
-      <img
+      />
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         src="../../assets/222.jpg"
         alt=""
         @load="onImageLoad"
-      />
+      /> -->
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
@@ -1219,11 +1219,11 @@ onMounted(() => {
 
   // background-color: red;;
 
-  .norem-img-wrapper {
+  .img-wrapper {
     border: 1px solid pink; // 可视化边界（调试用，可删）
     position: relative;
     width: 600px;
-    height: 800px;
+    height: 700px;
   }
 
   .norem-img-content {
@@ -1345,7 +1345,7 @@ onMounted(() => {
     .tool-mid {
       margin: 0 10px;
       // border: 1px solid red;
-      width: 260px;
+      width: 320px;
       height: 80px;
       display: flex;
       flex-direction: row;
@@ -1356,7 +1356,7 @@ onMounted(() => {
         cursor: pointer;
         line-height: 30px;
         font-size: 16px;
-        width: 80px;
+        width: 100px;
         height: 30px;
       }
     }

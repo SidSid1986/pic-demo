@@ -21,7 +21,7 @@
           draggable="true"
           @dragstart="(e) => onDragStart(e, item, idx)"
         >
-          {{ item.data.label }}
+          <span>{{ item.data.label }}</span>
         </div>
       </div>
     </div>
@@ -201,7 +201,7 @@ const nodeTemplates = ref([]);
 //   }
 // );
 
-function getSteps() {
+const getSteps = () => {
   steps().then((res) => {
     console.log(res);
 
@@ -211,19 +211,19 @@ function getSteps() {
       data: { stepId: step.id, label: step.name, type: "step" },
     }));
   });
-}
+};
 
 // 拖拽开始时，记录拖拽的节点类型
-function onDragStart(event, template, idx) {
+const onDragStart = (event, template, idx) => {
   event.dataTransfer.setData(
     "application/vueflow",
     JSON.stringify({ ...template, idx })
   );
   event.dataTransfer.effectAllowed = "move";
-}
+};
 
 // 拖拽放置
-function onDrop(event) {
+const onDrop = (event) => {
   event.preventDefault();
   const data = event.dataTransfer.getData("application/vueflow");
   if (!data) return;
@@ -242,15 +242,15 @@ function onDrop(event) {
     id,
     position,
   });
-}
+};
 
-function onDragOver(event) {
+const onDragOver = (event) => {
   event.preventDefault();
   event.dataTransfer.dropEffect = "move";
-}
+};
 
 // 创建连线时使用我们的自定义动画边;
-function onConnect(connection) {
+const onConnect = (connection) => {
   // 生成唯一ID
   const edgeId = `edge-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -273,10 +273,10 @@ function onConnect(connection) {
       },
     },
   });
-}
+};
 
 // 开始流程动画
-function startFlowAnimation() {
+const startFlowAnimation = () => {
   // 构建节点连接关系
   const edgeMap = {};
   edges.value.forEach((edge) => {
@@ -312,10 +312,10 @@ function startFlowAnimation() {
 
   // 开始动画序列
   animateNextEdge();
-}
+};
 
 // 其他原有方法保持不变...
-function deleteSelectedNode() {
+const deleteSelectedNode = () => {
   const selectedIds = selectedNodes.value.map((n) =>
     typeof n === "string" ? n : n.id
   );
@@ -325,21 +325,21 @@ function deleteSelectedNode() {
       !selectedIds.includes(edge.source) && !selectedIds.includes(edge.target)
   );
   selectedNodes.value = [];
-}
+};
 
-function deleteSelectedEdge() {
+const deleteSelectedEdge = () => {
   const selectedIds = selectedEdges.value.map((e) =>
     typeof e === "string" ? e : e.id
   );
   edges.value = edges.value.filter((edge) => !selectedIds.includes(edge.id));
   selectedEdges.value = [];
-}
+};
 
 onInit((vueFlowInstance) => {
   vueFlowInstance.fitView();
 });
 
-function updatePos() {
+const updatePos = () => {
   nodes.value = nodes.value.map((node) => ({
     ...node,
     position: {
@@ -347,22 +347,22 @@ function updatePos() {
       y: Math.random() * 400,
     },
   }));
-}
+};
 
-function logToObject() {
+const logToObject = () => {
   console.log(toObject());
-}
+};
 
-function resetTransform() {
+const resetTransform = () => {
   setViewport({ x: 0, y: 0, zoom: 1 });
-}
+};
 
-function toggleDarkMode() {
+const toggleDarkMode = () => {
   dark.value = !dark.value;
-}
+};
 
 //第一种格式
-// function exportFlowJSON() {
+// const exportFlowJSON=()=> {
 //   // 构建 id 到 label 的映射
 //   const nodeMap = {};
 //   nodes.value.forEach((node) => {
@@ -547,7 +547,7 @@ function toggleDarkMode() {
 // }
 
 //第二种格式
-// function exportFlowJSON() {
+// const exportFlowJSON=()=> {
 //   // 1. 收集所有节点和边
 //   const allNodes = nodes.value;
 //   const allEdges = edges.value;
@@ -628,7 +628,7 @@ function toggleDarkMode() {
 // }
 
 //第三种格式
-function exportFlowJSON() {
+const exportFlowJSON = () => {
   // 1. 收集所有节点和边
   const allNodes = nodes.value;
   const allEdges = edges.value;
@@ -703,9 +703,9 @@ function exportFlowJSON() {
   });
 
   return steps;
-}
+};
 
-// function onNodeClick(params) {
+// const onNodeClick=(params)=> {
 //   console.log(params);
 //   selectedNodes.value = [params.node.id];
 
@@ -724,12 +724,12 @@ const onNodeClick = (event) => {
     },
   }));
 };
-// function onEdgeClick(params) {
+// const onEdgeClick=(params)=> {
 //   console.log(params);
 //   selectedEdges.value = [params.edge.id];
 // }
 
-function onEdgeClick(event) {
+const onEdgeClick = (event) => {
   console.log(event.edge);
   const edgeId = event.edge.id;
   selectedEdges.value = [event.edge.id];
@@ -744,14 +744,14 @@ function onEdgeClick(event) {
       // color: edge.id === edgeId ? '#ff0000' : undefined,
     },
   }));
-}
+};
 
 onMounted(() => {
   getSteps();
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .flow-container {
   display: flex;
   height: 100vh;
@@ -822,12 +822,15 @@ onMounted(() => {
   cursor: grab;
   width: 120px;
   height: 60px;
-  line-height: 60px;
   border-radius: 10px;
-  /* line-height: 40px; */
-  white-space: normal;
-  word-break: break-all;
-  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  span {
+    display: inline-block;
+    // background-color: red;
+  }
 }
 
 .node-template:hover {

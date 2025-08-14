@@ -78,12 +78,13 @@ const handleSourceStyle = {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 80px;
+  width: 120px;
   height: 40px;
   border-radius: 8px;
   background-color: green;
   border: 1px solid #ddd;
   color: #ffffff;
+  box-sizing: border-box;
 }
 
 .custom-node-start {
@@ -97,7 +98,7 @@ const handleSourceStyle = {
 .node-label {
   pointer-events: none;
   user-select: none;
-  font-size: 16px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -111,7 +112,7 @@ const handleSourceStyle = {
 
 /* 选中状态下的节点样式 */
 .custom-node.selected {
-  border: 2px solid #ff4444 !important;
+  border: 1px solid #ff4444 !important;
   box-sizing: border-box;
   /* background-color: lightgreen !important;   */
   /* box-shadow: 0 0 8px rgba(255, 68, 68, 0.6); */
