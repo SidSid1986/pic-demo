@@ -1303,7 +1303,7 @@ onMounted(() => {
   // background-color: red;;
 
   .img-wrapper {
-    border: 1px solid pink; // 可视化边界（调试用，可删）
+    // border: 1px solid pink; // 可视化边界（调试用，可删）
     position: relative;
     width: 600px;
     height: 700px;

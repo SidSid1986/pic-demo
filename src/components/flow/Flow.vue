@@ -3,6 +3,7 @@
     <!-- 节点库 -->
     <div class="flow-menu">
       <button @click="exportFlowJSON" class="export-btn">📥导出流程</button>
+      <button class="delete-btn" @click="clearSelectedNode">🗑️ 清空节点</button>
       <button class="delete-btn" @click="deleteSelectedEdge">
         🗑️ 删除连线
       </button>
@@ -633,21 +634,15 @@ const exportFlowJSON = () => {
   const allNodes = nodes.value;
   const allEdges = edges.value;
 
-  // 2. 正确识别start和end节点
+  // 2. 正确识别 start 和 end 节点
   const startNode = allNodes.find(
     (node) => !allEdges.some((edge) => edge.target === node.id)
   );
-
   const endNode = allNodes.find(
     (node) => !allEdges.some((edge) => edge.source === node.id)
   );
 
-  if (!startNode || !endNode) {
-    alert("请先创建完整的流程，包含开始和结束节点");
-    return;
-  }
-
-  // 3. 构建邻接表（源节点→目标节点列表）
+  // 3. 构建邻接表
   const adjacencyList = {};
   allEdges.forEach((edge) => {
     if (!adjacencyList[edge.source]) {
@@ -656,16 +651,15 @@ const exportFlowJSON = () => {
     adjacencyList[edge.source].push(edge.target);
   });
 
-  // 4. 使用BFS找出所有从start到end的完整路径
-  const steps = []; // 直接使用steps数组
-  const queue = [[startNode.id]];
+  // 4. 使用 BFS 找出所有从 start 到 end 的路径
+  const steps = []; // 保存所有路径
+  const queue = [[startNode?.id]]; // 使用可选链避免 startNode 为 undefined 报错
 
   while (queue.length > 0) {
     const currentPath = queue.shift();
     const lastNodeId = currentPath[currentPath.length - 1];
 
-    // 如果到达end节点，保存完整路径
-    if (lastNodeId === endNode.id) {
+    if (lastNodeId === endNode?.id) {
       const fullPath = currentPath.map((id) => ({
         id,
         label: allNodes.find((n) => n.id === id)?.data?.label || "",
@@ -675,34 +669,35 @@ const exportFlowJSON = () => {
       continue;
     }
 
-    // 获取当前节点的所有子节点
     const children = adjacencyList[lastNodeId] || [];
-
-    // 为每个子节点创建新路径
     children.forEach((childId) => {
       if (!currentPath.includes(childId)) {
-        // 避免循环
         queue.push([...currentPath, childId]);
       }
     });
   }
 
-  // 5. 只返回steps数组
-  console.log("导出的步骤数据:", JSON.stringify(steps, null, 2));
+  // 5. 构造返回给 processImage 的数据格式（简化版）
+  const result =
+    steps.length > 0
+      ? steps[0].map((item) => ({
+          name: item.label,
+          id: item.stepId,
+        }))
+      : [];
 
-  const result = steps[0].map((item) => ({
-    name: item.label, // label → name
-    id: item.stepId, // stepId → id （已经是数字类型）
-  }));
+  // 🔍 打印调试信息
+  console.log("  导出的步骤数据 (steps):", JSON.stringify(steps, null, 2));
+  console.log("  导出结果 (给 processImage 的格式):", result);
 
-  console.log(result);
-
-  let data = [{ id: 3, name: "二值化" }];
+  // ✅ 重点：无论 result 是 [] 还是有数据，都执行 processImage
+  let data = result; // 或者直接用 steps，根据你的需求传给后端
   processImage(data).then((res) => {
-    console.log(res);
+    console.log("  processImage 返回结果:", res);
   });
 
-  return steps;
+  // 6. （可选）你仍然可以返回 result 或 steps，供前端使用
+  return result; // 或者 return steps;
 };
 
 // const onNodeClick=(params)=> {
@@ -744,6 +739,12 @@ const onEdgeClick = (event) => {
       // color: edge.id === edgeId ? '#ff0000' : undefined,
     },
   }));
+};
+
+//清空
+const clearSelectedNode = () => {
+  nodes.value = [];
+  edges.value = [];
 };
 
 onMounted(() => {
