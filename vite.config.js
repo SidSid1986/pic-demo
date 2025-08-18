@@ -2,7 +2,7 @@
  * @Author: Sid Li
  * @Date: 2025-08-08 10:28:51
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-14 16:07:47
+ * @LastEditTime: 2025-08-18 11:01:22
  * @FilePath: \pic-demo-git\pic-demo\vite.config.js
  * @Description:
  */
@@ -16,6 +16,8 @@ import postCssPxToRem from "postcss-pxtorem";
 import { resolve } from "path";
 // 导入对应包
 import ElementPlus from "unplugin-element-plus/vite";
+
+// const prefix = import.meta.env.VITE_API_PREFIX;
 
 export default ({ mode }) => {
   const env = loadEnv(mode, process.cwd());
@@ -80,26 +82,26 @@ export default ({ mode }) => {
       host: "0.0.0.0",
       port: 9106,
       proxy: {
-        "/FreeIeAPI": {
+        "/api": {
           target: env.VITE_APP_API_HOST,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/FreeIeAPI/, ""),
+          // rewrite: (path) => path.replace(/^\/api/, ""),
         },
-        "/get_fetch_image": {
-          target: env.VITE_APP_API_HOST, // http://192.168.3.154:8000
-          changeOrigin: true,
-          rewrite: (path) => {
-            // ✅ 如果你的后端接口就是 /get_fetch_image，那不需要 rewrite，或者写成：
-            return "/get_fetch_image"; // 或者 return path; 根据实际情况
-            // 如果你的真实图片 API 路径是比如 /api/camera/frame，请按需 rewrite
-          },
-          configure: (proxy, options) => {
-            proxy.on("proxyRes", function (proxyRes, req, res) {
-              // ✅ 关键：添加 CORS 头，让图片可被 canvas 使用
-              proxyRes.headers["Access-Control-Allow-Origin"] = "*";
-            });
-          },
-        },
+        // "/get_fetch_image": {
+        //   target: env.VITE_APP_API_HOST, // http://192.168.3.154:8000
+        //   changeOrigin: true,
+        //   rewrite: (path) => {
+        //     // ✅ 如果你的后端接口就是 /get_fetch_image，那不需要 rewrite，或者写成：
+        //     return "/get_fetch_image"; // 或者 return path; 根据实际情况
+        //     // 如果你的真实图片 API 路径是比如 /api/camera/frame，请按需 rewrite
+        //   },
+        //   configure: (proxy, options) => {
+        //     proxy.on("proxyRes", function (proxyRes, req, res) {
+        //       // ✅ 关键：添加 CORS 头，让图片可被 canvas 使用
+        //       proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+        //     });
+        //   },
+        // },
       },
     },
 

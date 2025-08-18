@@ -2,8 +2,8 @@
  * @Author: Sid Li
  * @Date: 2025-08-06 17:13:35
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-07 09:24:35
- * @FilePath: \pic-demo-git\src\main.js
+ * @LastEditTime: 2025-08-15 11:23:13
+ * @FilePath: \pic-demo-git\pic-demo\src\main.js
  * @Description:
  */
 import { createApp } from "vue";
@@ -21,14 +21,14 @@ import router from "@/router/index.js";
 
 import store from "@/store";
 
-import useLocalStorageListener from "@/utils/localstorageListener";
+// import useLocalStorageListener from "@/utils/localstorageListener";
 // 引入rem适配
 import "@/utils/rem.js";
 
 // 引入flexible
 import "amfe-flexible";
 
-useLocalStorageListener();
+// useLocalStorageListener();
 
 const app = createApp(App);
 app.use(store);

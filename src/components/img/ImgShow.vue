@@ -4,8 +4,8 @@
       <div class="free-content">
         <div class="btn-free-pick">
           <button
-            class="btn-free"
             @click="setFreeDrawingMode"
+            class="btn-free"
             :class="{ active: isDrawing }"
           >
             ✏️ 画笔
@@ -62,7 +62,6 @@
       <div class="too-edit">
         <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
         <button @click="exportImage" class="export-btn">📥 导出图片</button>
-
         <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button>
       </div>
@@ -76,14 +75,23 @@
         @load="onImageLoad"
         @error="onImageError"
       /> -->
-        <img
+
+      <img
+        ref="imageElement"
+        class="norem-img-content"
+        :src="`${baseUrl}/api/get_fetch_image?t=${imageCounter}`"
+        alt=""
+        @load="onImageLoad"
+        @error="onImageError"
+      />
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      />
+      /> -->
       <!-- <img
         ref="imageElement"
         class="norem-img-content"
@@ -94,7 +102,7 @@
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
-        style="position: absolute; top: 0; left: 0; z-index: 100 !important"
+        style="position: absolute; top: 0; left: 0"
       ></canvas>
       <div class="noImg" v-if="noImg">图片加载失败</div>
     </div>
@@ -106,16 +114,18 @@ import { ref, onMounted } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
-import { steps, fetchImage, processImage } from "@/api/common";
+import { steps, fetchImage, processImage, stopImg } from "@/api/common";
 
 import html2canvas from "html2canvas";
+
+const imageCounter = ref(0);
 
 const noImg = ref(false);
 const isImageReady = ref(false);
 const imageElement = ref(null);
 
-// const baseUrl = import.meta.env.VITE_APP_API_HOST;
-const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
+const baseUrl = import.meta.env.VITE_APP_API_HOST;
+// const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
 const predefineColors = ref([
   "#ff4500",
   "#ff8c00",
@@ -883,72 +893,114 @@ const setMode = () => {
 //   }
 // };
 
+const exportImage = async () => {
+  isDrawing.value = false;
+  let data = { stop: true };
+
+  // await stopImg(data);
+  // fetchImage().then((res) => {});
+
+  try {
+    // 等待 stopImg 完成
+    await stopImg(data);
+
+    // 查找导出区域
+    const wrapper = document.querySelector(".export-image-wrapper");
+    if (!wrapper) {
+      alert("未找到导出区域");
+      return;
+    }
+    // 使用 html2canvas 生成 canvas
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: null,
+      useCORS: true,
+      allowTaint: true, // 谨慎使用
+    });
+
+    // 触发下载
+    const link = document.createElement("a");
+    link.download = `full-export-${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+
+    imageCounter.value++;
+
+    //启动
+    // setTimeout(() => {
+    // fetchImage().then((res) => {});
+    // }, 5000);
+  } catch (error) {
+    console.error("导出失败：", error);
+    alert("导出失败，请重试");
+  }
+};
+
 //实时图片
 // ✅ 导出按钮点击时调用的方法
-const exportImage = () => {
-  if (!imageElement.value || !canvas) {
-    alert("❌ 图片或画布未初始化，请稍后再试");
-    return;
-  }
+// const exportImage = () => {
+//   if (!imageElement.value || !canvas) {
+//     alert("❌ 图片或画布未初始化，请稍后再试");
+//     return;
+//   }
 
-  const imgEl = imageElement.value; // <img ref="imageElement">
-  const fabricCanvas = canvas; // 你的 Fabric.js canvas 实例
+//   const imgEl = imageElement.value; // <img ref="imageElement">
+//   const fabricCanvas = canvas; //  Fabric.js canvas 实例
 
-  if (!imgEl.complete || !imgEl.naturalWidth) {
-    alert("⚠️ 当前图片尚未加载完成，请稍后重试导出");
-    return;
-  }
+//   if (!imgEl.complete || !imgEl.naturalWidth) {
+//     alert("⚠️ 当前图片尚未加载完成，请稍后重试导出");
+//     return;
+//   }
 
-  // 1. 创建一个离屏 canvas（用于最终导出）
-  const exportCanvas = document.createElement("canvas");
-  const ctx = exportCanvas.getContext("2d");
+//   // 1. 创建一个离屏 canvas（用于最终导出）
+//   const exportCanvas = document.createElement("canvas");
+//   const ctx = exportCanvas.getContext("2d");
 
-  // 2. 设置导出 canvas 的尺寸为图片尺寸（或者你也可以用固定画布尺寸）
-  exportCanvas.width = imgEl.naturalWidth; // 或者 imageDisplayWidth，如果你缩放过
-  exportCanvas.height = imgEl.naturalHeight;
+//   // 2. 设置导出 canvas 的尺寸为图片尺寸（或者你也可以用固定画布尺寸）
+//   exportCanvas.width = imgEl.naturalWidth; // 或者 imageDisplayWidth，如果你缩放过
+//   exportCanvas.height = imgEl.naturalHeight;
 
-  // 3. 先绘制实时图像（当前 img 标签的帧）
-  ctx.drawImage(imgEl, 0, 0, exportCanvas.width, exportCanvas.height);
+//   // 3. 先绘制实时图像（当前 img 标签的帧）
+//   ctx.drawImage(imgEl, 0, 0, exportCanvas.width, exportCanvas.height);
 
-  // 4. 再将 Fabric.js 的内容也绘制到该 canvas 上
-  // 方法：使用 fabric.Canvas 的 lowerCanvasEl（即实际渲染的 canvas），直接 drawImage 到目标 canvas
-  const fabricCanvasElement = fabricCanvas.getElement(); // 获取 fabric 底层 canvas DOM
-  if (fabricCanvasElement) {
-    // 可选：如果你的 fabric 画布尺寸和图片不一致，可以调整绘制位置和大小
-    ctx.drawImage(
-      fabricCanvasElement,
-      0,
-      0,
-      fabricCanvasElement.width,
-      fabricCanvasElement.height,
-      0,
-      0,
-      exportCanvas.width,
-      exportCanvas.height // 你可以调整位置，比如居中等
-    );
-  } else {
-    console.warn("⚠️ 无法获取 Fabric.js 的底层 canvas，仅导出背景图");
-  }
+//   // 4. 再将 Fabric.js 的内容也绘制到该 canvas 上
+//   // 方法：使用 fabric.Canvas 的 lowerCanvasEl（即实际渲染的 canvas），直接 drawImage 到目标 canvas
+//   const fabricCanvasElement = fabricCanvas.getElement(); // 获取 fabric 底层 canvas DOM
+//   if (fabricCanvasElement) {
+//     //如果fabric画布尺寸和图片不一致，可以调整绘制位置和大小
+//     ctx.drawImage(
+//       fabricCanvasElement,
+//       0,
+//       0,
+//       fabricCanvasElement.width,
+//       fabricCanvasElement.height,
+//       0,
+//       0,
+//       exportCanvas.width,
+//       exportCanvas.height // 你可以调整位置，比如居中等
+//     );
+//   } else {
+//     console.warn("⚠️ 无法获取 Fabric.js 的底层 canvas，仅导出背景图");
+//   }
 
-  // 5. 导出为 PNG
-  exportCanvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `exported-image-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, "image/png");
+//   // 5. 导出为 PNG
+//   exportCanvas.toBlob((blob) => {
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement("a");
+//     a.href = url;
+//     a.download = `exported-image-${Date.now()}.png`;
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//     URL.revokeObjectURL(url);
+//   }, "image/png");
 
-  // 或者用 toDataURL 直接下载（备选）
-  // const dataURL = exportCanvas.toDataURL("image/png");
-  // const link = document.createElement("a");
-  // link.download = `exported-image-${Date.now()}.png`;
-  // link.href = dataURL;
-  // link.click();
-};
+//   // 或者用 toDataURL 直接下载（备选）
+//   // const dataURL = exportCanvas.toDataURL("image/png");
+//   // const link = document.createElement("a");
+//   // link.download = `exported-image-${Date.now()}.png`;
+//   // link.href = dataURL;
+//   // link.click();
+// };
 
 // 删除当前选中的图形
 const deleteSelected = () => {
@@ -1214,6 +1266,8 @@ const initFabricCanvas = () => {
     backgroundColor: "transparent", // 可选
   });
 
+  console.log(canvasEl.value);
+
   console.log(
     "✅ Fabric Canvas 已初始化，尺寸:",
     imageDisplayWidth,
@@ -1246,12 +1300,9 @@ const initFabricCanvas = () => {
 
 // 初始化画布
 onMounted(() => {
-  fetchImage().then((res) => {});
-
+  // fetchImage().then((res) => {});
   // canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
-
   // setArrowDragMode(false);
-
   // fabric.Image.fromURL(bgImage, (img) => {
   //   if (!img) return console.error("背景图加载失败");
   //   img.set({
@@ -1262,7 +1313,6 @@ onMounted(() => {
   //   });
   //   canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
   // });
-
   // canvas.on("mouse:down", (opt) => {
   //   handleArrowDragMouseDown(opt);
   //   handleRectangleDragMouseDown(opt);
@@ -1537,5 +1587,27 @@ onMounted(() => {
 .noImg {
   width: 400px;
   height: 400px;
+}
+
+/* 确保 upper-canvas 在最上层 */
+.fabric-canvas.upper-canvas {
+  z-index: 100 !important;
+}
+
+/* 确保 lower-canvas 在下层 */
+.fabric-canvas.lower-canvas {
+  z-index: 1 !important;
+}
+</style>
+
+<style>
+/* 确保 upper-canvas 在最上层 */
+.fabric-canvas.upper-canvas {
+  z-index: 100 !important;
+}
+
+/* 确保 lower-canvas 在下层 */
+.fabric-canvas.lower-canvas {
+  z-index: 1 !important;
 }
 </style>

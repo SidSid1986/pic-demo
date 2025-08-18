@@ -745,6 +745,7 @@ const onEdgeClick = (event) => {
 const clearSelectedNode = () => {
   nodes.value = [];
   edges.value = [];
+  exportFlowJSON();
 };
 
 onMounted(() => {
