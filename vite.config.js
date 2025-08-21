@@ -2,7 +2,7 @@
  * @Author: Sid Li
  * @Date: 2025-08-08 10:28:51
  * @LastEditors: Sid Li
- * @LastEditTime: 2025-08-18 11:01:22
+ * @LastEditTime: 2025-08-20 09:30:08
  * @FilePath: \pic-demo-git\pic-demo\vite.config.js
  * @Description:
  */
@@ -91,7 +91,7 @@ export default ({ mode }) => {
         //   target: env.VITE_APP_API_HOST, // http://192.168.3.154:8000
         //   changeOrigin: true,
         //   rewrite: (path) => {
-        //     // ✅ 如果你的后端接口就是 /get_fetch_image，那不需要 rewrite，或者写成：
+        //     // ✅ 如果后端接口就是 /get_fetch_image，那不需要 rewrite，或者写成：
         //     return "/get_fetch_image"; // 或者 return path; 根据实际情况
         //     // 如果你的真实图片 API 路径是比如 /api/camera/frame，请按需 rewrite
         //   },

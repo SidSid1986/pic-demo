@@ -76,6 +76,7 @@
         @error="onImageError"
       /> -->
 
+      <!-- 项目暂用 -->
       <img
         ref="imageElement"
         class="norem-img-content"
@@ -84,6 +85,7 @@
         @load="onImageLoad"
         @error="onImageError"
       />
+
       <!-- <img
         ref="imageElement"
         class="norem-img-content"
@@ -95,7 +97,7 @@
       <!-- <img
         ref="imageElement"
         class="norem-img-content"
-        src="../../assets/222.jpg"
+        src="../../assets/123.jpg"
         alt=""
         @load="onImageLoad"
       /> -->
@@ -105,6 +107,30 @@
         style="position: absolute; top: 0; left: 0"
       ></canvas>
       <div class="noImg" v-if="noImg">图片加载失败</div>
+    </div>
+
+    <div class="camera-wrapper">
+      <div class="camera-border">
+        <div class="camera-img-info">
+          <span>图像获取帧率:</span>
+          <span>图像处理耗时:</span>
+        </div>
+        <div class="camera-local-info">
+          <span>当前相机信息:</span>
+          <el-select
+            v-model="valueCamera"
+            placeholder="Select"
+            style="width: 120px"
+          >
+            <el-option
+              v-for="item in optionsCamera"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -118,13 +144,39 @@ import { steps, fetchImage, processImage, stopImg } from "@/api/common";
 
 import html2canvas from "html2canvas";
 
+const valueCamera = ref("");
+
+const optionsCamera = [
+  {
+    value: "Option1",
+    label: "Option1",
+  },
+  {
+    value: "Option2",
+    label: "Option2",
+  },
+  {
+    value: "Option3",
+    label: "Option3",
+  },
+  {
+    value: "Option4",
+    label: "Option4",
+  },
+  {
+    value: "Option5",
+    label: "Option5",
+  },
+];
+
 const imageCounter = ref(0);
 
 const noImg = ref(false);
 const isImageReady = ref(false);
 const imageElement = ref(null);
+const baseUrl = ref("");
 
-const baseUrl = import.meta.env.VITE_APP_API_HOST;
+// const baseUrl = import.meta.env.VITE_APP_API_HOST;
 // const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
 const predefineColors = ref([
   "#ff4500",
@@ -146,9 +198,6 @@ const predefineColors = ref([
 // Refs
 const canvasEl = ref(null);
 let canvas = null;
-
-// 响应式元素引用
-const imgEl = ref(null);
 
 // 图片原始尺寸和显示尺寸
 let imageNaturalWidth = 0;
@@ -1193,11 +1242,11 @@ const loadCanvas = () => {
 // };
 
 // 图片加载完成后的处理
-const onImageLoad = (event) => {
-  noImg.value = false;
-  const img = event.target; // <img> 元素
+const onImageLoad = () => {
+  if (!imageElement.value) return;
+  const img = imageElement.value;
 
-  if (!img) return;
+  noImg.value = false;
 
   // 1. 获取原始宽高
   imageNaturalWidth = img.naturalWidth;
@@ -1207,12 +1256,12 @@ const onImageLoad = (event) => {
 
   // 2. 计算最大允许缩放比例
   const maxWidth = 400;
-  const maxHeight = 800;
+  const maxHeight = 600;
 
   const scaleByWidth = maxWidth / imageNaturalWidth;
   const scaleByHeight = maxHeight / imageNaturalHeight;
 
-  // 3. 取最小缩放比例，保证宽和高都不超
+  // 3. 取最小缩放比例
   const scale = Math.min(scaleByWidth, scaleByHeight);
 
   // 4. 计算最终显示尺寸
@@ -1221,26 +1270,21 @@ const onImageLoad = (event) => {
 
   console.log("约束后显示尺寸:", imageDisplayWidth, "x", imageDisplayHeight);
 
-  // 5. 【可选】设置 <img> 的 CSS 宽高（如果你希望页面上也按这个尺寸显示）
-  if (imgEl.value) {
-    imgEl.value.style.width = `${imageDisplayWidth}px`;
-    imgEl.value.style.height = `${imageDisplayHeight}px`;
-  }
+  // 5. 设置图片的显示尺寸（关键！）
+  img.style.width = `${imageDisplayWidth}px`;
+  img.style.height = `${imageDisplayHeight}px`;
 
-  // 6. 【必须】设置 <canvas> 的实际绘图尺寸（不是 CSS！是 fabric.Canvas 的 width/height 属性）
+  // 6. 设置 canvas 尺寸
   if (canvasEl.value) {
     canvasEl.value.width = imageDisplayWidth;
     canvasEl.value.height = imageDisplayHeight;
-
-    // 可选：让 canvas 盒子在页面上也显示为对应大小（通常与绘图尺寸一致）
     canvasEl.value.style.width = `${imageDisplayWidth}px`;
     canvasEl.value.style.height = `${imageDisplayHeight}px`;
   }
 
-  // 7. 初始化 Fabric.js Canvas（必须在知道尺寸之后）
+  // 7. 初始化 Fabric
   initFabricCanvas();
 
-  // ✅ 关键：图片加载完成，允许截图
   isImageReady.value = true;
 };
 
@@ -1300,6 +1344,8 @@ const initFabricCanvas = () => {
 
 // 初始化画布
 onMounted(() => {
+  console.log(window.location.origin);
+  baseUrl.value = window.location.origin;
   // fetchImage().then((res) => {});
   // canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
   // setArrowDragMode(false);
@@ -1353,10 +1399,9 @@ onMounted(() => {
   // background-color: red;;
 
   .img-wrapper {
-    // border: 1px solid pink; // 可视化边界（调试用，可删）
+    // border: 3px solid red; // 可视化边界（调试用，可删）
     position: relative;
     width: 600px;
-    height: 700px;
   }
 
   .norem-img-content {
@@ -1597,6 +1642,51 @@ onMounted(() => {
 /* 确保 lower-canvas 在下层 */
 .fabric-canvas.lower-canvas {
   z-index: 1 !important;
+}
+
+.camera-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  // border: 1px solid red;
+  padding: 20px 30px;
+  .camera-border {
+    // border: 1px solid red;
+
+    background: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 0 20px;
+
+    .camera-img-info {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      height: 50px;
+      // border: 1px solid blue;
+      span {
+        width: 40%;
+        // border: 1px solid red;
+        text-align: left;
+        height: 50px;
+        line-height: 50px;
+      }
+    }
+    .camera-local-info {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      height: 50px;
+      // border: 1px solid blue;
+      span {
+        // border: 1px solid red;
+        text-align: left;
+        height: 50px;
+        line-height: 50px;
+      }
+    }
+  }
 }
 </style>
 

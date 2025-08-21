@@ -1,5 +1,5 @@
 <template>
-  <div class="flow-container">
+  <div class="flow-container" @click="handleGlobalClick">
     <!-- 节点库 -->
     <div class="flow-menu">
       <button @click="exportFlowJSON" class="export-btn">📥导出流程</button>
@@ -47,6 +47,8 @@
         @connect="onConnect"
         @node-click="onNodeClick"
         @edge-click="onEdgeClick"
+        @node-context-menu="onNodeContextMenu"
+        @pane-context-menu="onPaneContextMenu"
       >
         <!-- 注册自定义边 -->
         <template #edge-animated="edgeProps">
@@ -91,6 +93,25 @@
           </ControlButton>
         </Controls>
       </VueFlow>
+
+      <!-- 右键 -->
+      <div
+        v-if="showNodeContextMenu"
+        ref="contextMenuRef"
+        class="node-context-menu"
+        :style="{
+          left: contextMenuPosition.x + 'px',
+          top: contextMenuPosition.y + 'px',
+        }"
+      >
+        <div @click="() => handleNodeMenuAction('edit')" class="menu-item">
+          ✏️ 编辑节点
+        </div>
+        <div @click="() => handleNodeMenuAction('delete')" class="menu-item">
+          🗑️ 删除节点
+        </div>
+        <!-- 可继续添加其它操作，比如复制、查看详情等 -->
+      </div>
     </div>
   </div>
 </template>
@@ -181,6 +202,11 @@ const dark = ref(false);
 // ];
 
 const nodeTemplates = ref([]);
+
+const showNodeContextMenu = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0 });
+const selectedNodeForMenu = ref(null);
+const contextMenuRef = ref(null);
 
 // const props = defineProps({
 //   stepsData: {
@@ -630,19 +656,38 @@ const toggleDarkMode = () => {
 
 //第三种格式
 const exportFlowJSON = () => {
-  // 1. 收集所有节点和边
   const allNodes = nodes.value;
   const allEdges = edges.value;
 
-  // 2. 正确识别 start 和 end 节点
+  // 如果没有节点，直接返回 []，并且调用 processImage([])
+  if (allNodes.length === 0) {
+    console.log("没有任何节点，导出空流程数据 []");
+    processImage([]).then((res) => {
+      console.log(" processImage 返回（无节点情况）:", res);
+    });
+    return [];
+  }
+
+  // 1. 找到 startNode（没有入边的节点）
   const startNode = allNodes.find(
     (node) => !allEdges.some((edge) => edge.target === node.id)
   );
+
+  // 2. 找到 endNode（没有出边的节点）
   const endNode = allNodes.find(
     (node) => !allEdges.some((edge) => edge.source === node.id)
   );
 
-  // 3. 构建邻接表
+  // 3. 如果连起点或终点都找不到，可能流程不完整，也可以选择返回 []
+  if (!startNode || !endNode) {
+    console.warn("未找到有效的起点或终点节点，可能流程不完整");
+    processImage([]).then((res) => {
+      console.log("processImage 返回（流程不完整）:", res);
+    });
+    return [];
+  }
+
+  // 4. 构建邻接表
   const adjacencyList = {};
   allEdges.forEach((edge) => {
     if (!adjacencyList[edge.source]) {
@@ -651,15 +696,15 @@ const exportFlowJSON = () => {
     adjacencyList[edge.source].push(edge.target);
   });
 
-  // 4. 使用 BFS 找出所有从 start 到 end 的路径
-  const steps = []; // 保存所有路径
-  const queue = [[startNode?.id]]; // 使用可选链避免 startNode 为 undefined 报错
+  // 5. BFS 找出所有从 start 到 end 的路径
+  const steps = [];
+  const queue = [[startNode.id]];
 
   while (queue.length > 0) {
     const currentPath = queue.shift();
     const lastNodeId = currentPath[currentPath.length - 1];
 
-    if (lastNodeId === endNode?.id) {
+    if (lastNodeId === endNode.id) {
       const fullPath = currentPath.map((id) => ({
         id,
         label: allNodes.find((n) => n.id === id)?.data?.label || "",
@@ -677,7 +722,7 @@ const exportFlowJSON = () => {
     });
   }
 
-  // 5. 构造返回给 processImage 的数据格式（简化版）
+  // 6. 构造成给后端的格式：[{ name: ..., id: ... }]
   const result =
     steps.length > 0
       ? steps[0].map((item) => ({
@@ -686,18 +731,16 @@ const exportFlowJSON = () => {
         }))
       : [];
 
-  // 🔍 打印调试信息
-  console.log("  导出的步骤数据 (steps):", JSON.stringify(steps, null, 2));
-  console.log("  导出结果 (给 processImage 的格式):", result);
+  // 7. 调用 processImage，传入正确格式数据
+  console.log("导出的步骤数据 (steps):", JSON.stringify(steps, null, 2));
+  console.log("导出结果 (给 processImage 的格式):", result);
 
-  // ✅ 重点：无论 result 是 [] 还是有数据，都执行 processImage
-  let data = result; // 或者直接用 steps，根据你的需求传给后端
-  processImage(data).then((res) => {
-    console.log("  processImage 返回结果:", res);
+  processImage(result).then((res) => {
+    console.log(" processImage 返回结果:", res);
   });
 
-  // 6. （可选）你仍然可以返回 result 或 steps，供前端使用
-  return result; // 或者 return steps;
+  // 8. 返回结果（也可用于前端展示等）
+  return result;
 };
 
 // const onNodeClick=(params)=> {
@@ -708,6 +751,7 @@ const exportFlowJSON = () => {
 
 // 点击节点时触发
 const onNodeClick = (event) => {
+  console.log(event.node);
   const nodeId = event.node.id;
   selectedNodes.value = [event.node.id];
   // 遍历所有节点，对每一个节点都重新设置 data.isSelected
@@ -746,6 +790,59 @@ const clearSelectedNode = () => {
   nodes.value = [];
   edges.value = [];
   exportFlowJSON();
+};
+
+// 右键点击节点时触发
+const onNodeContextMenu = (event) => {
+  event.event.preventDefault(); // 阻止系统右键菜单
+  const node = event.node; // 当前被右键的节点对象
+  console.log("右键点击的节点是：", node);
+  selectedNodes.value = [node.id];
+  // // 设置要显示的菜单数据
+  selectedNodeForMenu.value = node; // 可以存起来供菜单使用
+  contextMenuPosition.value.x = event.event.clientX;
+  contextMenuPosition.value.y = event.event.clientY;
+  showNodeContextMenu.value = true; // 控制菜单显示
+};
+
+// 右键点击画布空白处时触发
+const onPaneContextMenu = (event) => {
+  console.log(event);
+  // event.event.preventDefault();
+  console.log("右键点击了画布空白处");
+  showNodeContextMenu.value = false;
+
+  // 在鼠标位置显示 "添加节点" 菜单，或直接添加一个默认节点
+};
+
+// 菜单操作示例
+const handleNodeMenuAction = (action) => {
+  if (!selectedNodeForMenu.value) return;
+
+  const nodeId = selectedNodeForMenu.value.id;
+
+  console.log(`对节点 [${nodeId}] 执行操作:`, action);
+
+  if (action === "delete") {
+    // 删除该节点
+    deleteSelectedNode();
+  } else if (action === "edit") {
+    // 编辑节点逻辑
+    console.log(`编辑节点: ${selectedNodeForMenu.value.data.label}`);
+  }
+
+  // 关闭菜单
+  showNodeContextMenu.value = false;
+};
+
+//
+// 监听全局点击，点击其他地方关闭菜单
+const handleGlobalClick = (event) => {
+  if (!showNodeContextMenu.value) return;
+
+  if (contextMenuRef.value && !contextMenuRef.value.contains(event.target)) {
+    showNodeContextMenu.value = false;
+  }
 };
 
 onMounted(() => {
@@ -837,5 +934,28 @@ onMounted(() => {
 
 .node-template:hover {
   background: #e3eafa;
+}
+
+// 菜单样式
+.node-context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 120px;
+  padding: 4px 0;
+}
+
+.node-context-menu .menu-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #333;
+}
+
+.node-context-menu .menu-item:hover {
+  background-color: #f0f0f0;
 }
 </style>
