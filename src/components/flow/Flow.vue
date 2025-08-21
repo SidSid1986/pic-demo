@@ -84,6 +84,7 @@
           <ControlButton title="Shuffle Node Positions" @click="updatePos">
             <Icon name="update" />
           </ControlButton> -->
+
           <ControlButton title="Toggle Dark Mode" @click="toggleDarkMode">
             <Icon v-if="dark" name="sun" />
             <Icon v-else name="moon" />
