@@ -130,6 +130,9 @@ import "@/styles/main.css";
 import "@vue-flow/core/dist/style.css";
 import { processImage, steps } from "@/api/common";
 
+const emit = defineEmits(["changeTime"]);
+
+const processTime = ref(null);
 const nodes = ref([]);
 const edges = ref([]);
 const selectedNodes = ref([]);
@@ -256,6 +259,9 @@ const onDrop = (event) => {
   const data = event.dataTransfer.getData("application/vueflow");
   if (!data) return;
   const template = JSON.parse(data);
+
+  // const canvas = document.getElementById('flowchart-canvas')
+  // const rect = canvas.getBoundingClientRect()
 
   // 计算节点位置
   const rect = event.currentTarget.getBoundingClientRect();
@@ -738,6 +744,8 @@ const exportFlowJSON = () => {
 
   processImage(result).then((res) => {
     console.log(" processImage 返回结果:", res);
+    processTime.value = res.process_time;
+    emit("changeTime", processTime.value);
   });
 
   // 8. 返回结果（也可用于前端展示等）

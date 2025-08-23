@@ -80,11 +80,20 @@
       <img
         ref="imageElement"
         class="norem-img-content"
-        :src="`${baseUrl}/api/get_fetch_image?t=${imageCounter}`"
+        :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
       />
+
+      <!-- <img
+        ref="imageElement"
+        class="norem-img-content"
+        :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}`"
+        alt=""
+        @load="onImageLoad"
+        @error="onImageError"
+      /> -->
 
       <!-- <img
         ref="imageElement"
@@ -112,21 +121,30 @@
     <div class="camera-wrapper">
       <div class="camera-border">
         <div class="camera-img-info">
-          <span>图像获取帧率:</span>
-          <span>图像处理耗时:</span>
+          <span
+            >图像获取耗时:<span class="blue">{{
+              imageInfoData.acquisition_time_ms
+            }}</span></span
+          >
+          <span
+            >图像处理耗时:<span class="blue">{{ processTimeProp }}</span></span
+          >
         </div>
         <div class="camera-local-info">
-          <span>当前相机信息:</span>
+          <!-- <span>当前相机信息:测试--{{ valueCamera }}</span> -->
+          <span>当前相机信息:{{ valueCamera }}</span>
           <el-select
             v-model="valueCamera"
-            placeholder="Select"
+            placeholder="请选择相机"
             style="width: 120px"
+            @change="changeCamera"
+            no-data-text="暂无数据"
           >
             <el-option
-              v-for="item in optionsCamera"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+              v-for="(item, index) in optionsCamera"
+              :key="index"
+              :label="item.model_name"
+              :value="index"
             />
           </el-select>
         </div>
@@ -140,34 +158,51 @@ import { ref, onMounted } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
-import { steps, fetchImage, processImage, stopImg } from "@/api/common";
+import {
+  fetchImage,
+  processImage,
+  stopImg,
+  cameraList,
+  imageInfo,
+} from "@/api/common";
 
 import html2canvas from "html2canvas";
 
-const valueCamera = ref("");
+const props = defineProps({
+  processTimeProp: {
+    type: Number,
+    default: "",
+  },
+});
 
-const optionsCamera = [
-  {
-    value: "Option1",
-    label: "Option1",
-  },
-  {
-    value: "Option2",
-    label: "Option2",
-  },
-  {
-    value: "Option3",
-    label: "Option3",
-  },
-  {
-    value: "Option4",
-    label: "Option4",
-  },
-  {
-    value: "Option5",
-    label: "Option5",
-  },
-];
+const imageInfoData = ref({});
+
+const valueCamera = ref(null);
+
+// const optionsCamera = [
+//   {
+//     value: "Option1",
+//     label: "Option1",
+//   },
+//   {
+//     value: "Option2",
+//     label: "Option2",
+//   },
+//   {
+//     value: "Option3",
+//     label: "Option3",
+//   },
+//   {
+//     value: "Option4",
+//     label: "Option4",
+//   },
+//   {
+//     value: "Option5",
+//     label: "Option5",
+//   },
+// ];
+
+const optionsCamera = ref([]);
 
 const imageCounter = ref(0);
 
@@ -244,6 +279,25 @@ const canvasStates = ref([
 
 // 文本模式（新增！）
 const isTextMode = ref(false);
+
+//camera list
+const getCameraList = async () => {
+  const res = await cameraList();
+  console.log(res);
+  optionsCamera.value = res.devices;
+};
+
+//image info
+const getImageInfo = async () => {
+  const res = await imageInfo();
+  console.log(res);
+  imageInfoData.value = res;
+};
+
+const changeCamera = (e) => {
+  console.log(e);
+  getImageInfo();
+};
 
 // 更新画笔颜色
 const updateBrushColor = () => {
@@ -942,114 +996,120 @@ const setMode = () => {
 //   }
 // };
 
+// const exportImage = async () => {
+//   isDrawing.value = false;
+//   let data = { stop: true };
+
+//   // await stopImg(data);
+//   // fetchImage().then((res) => {});
+
+//   try {
+//     // 等待 stopImg 完成
+//     await stopImg(data);
+
+//     // 查找导出区域
+//     const wrapper = document.querySelector(".export-image-wrapper");
+//     if (!wrapper) {
+//       alert("未找到导出区域");
+//       return;
+//     }
+//     // 使用 html2canvas 生成 canvas
+//     const canvas = await html2canvas(wrapper, {
+//       backgroundColor: null,
+//       useCORS: true,
+//       allowTaint: true, // 谨慎使用
+//     });
+
+//     // 触发下载
+//     const link = document.createElement("a");
+//     link.download = `full-export-${Date.now()}.png`;
+//     link.href = canvas.toDataURL("image/png");
+//     link.click();
+
+//     imageCounter.value++;
+
+//     //启动
+//     // setTimeout(() => {
+//     // fetchImage().then((res) => {});
+//     // }, 5000);
+//   } catch (error) {
+//     console.error("导出失败：", error);
+//     alert("导出失败，请重试");
+//   }
+// };
+
+//实时图片
+//   导出按钮点击时调用的方法
 const exportImage = async () => {
   isDrawing.value = false;
   let data = { stop: true };
+  await stopImg(data); //停止采集
 
-  // await stopImg(data);
-  // fetchImage().then((res) => {});
-
-  try {
-    // 等待 stopImg 完成
-    await stopImg(data);
-
-    // 查找导出区域
-    const wrapper = document.querySelector(".export-image-wrapper");
-    if (!wrapper) {
-      alert("未找到导出区域");
-      return;
-    }
-    // 使用 html2canvas 生成 canvas
-    const canvas = await html2canvas(wrapper, {
-      backgroundColor: null,
-      useCORS: true,
-      allowTaint: true, // 谨慎使用
-    });
-
-    // 触发下载
-    const link = document.createElement("a");
-    link.download = `full-export-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-
-    imageCounter.value++;
-
-    //启动
-    // setTimeout(() => {
-    // fetchImage().then((res) => {});
-    // }, 5000);
-  } catch (error) {
-    console.error("导出失败：", error);
-    alert("导出失败，请重试");
+  if (!imageElement.value || !canvas) {
+    alert("❌ 图片或画布未初始化，请稍后再试");
+    return;
   }
+
+  const imgEl = imageElement.value; // <img ref="imageElement">
+  const fabricCanvas = canvas; //  Fabric.js canvas 实例
+
+  if (!imgEl.complete || !imgEl.naturalWidth) {
+    alert("⚠️ 当前图片尚未加载完成，请稍后重试导出");
+    return;
+  }
+
+  // 1. 创建一个离屏 canvas（用于最终导出）
+  const exportCanvas = document.createElement("canvas");
+  const ctx = exportCanvas.getContext("2d");
+
+  // 2. 设置导出 canvas 的尺寸为图片尺寸（或者你也可以用固定画布尺寸）
+  exportCanvas.width = imgEl.naturalWidth; // 或者 imageDisplayWidth，如果你缩放过
+  exportCanvas.height = imgEl.naturalHeight;
+
+  // 3. 先绘制实时图像（当前 img 标签的帧）
+  ctx.drawImage(imgEl, 0, 0, exportCanvas.width, exportCanvas.height);
+
+  // 4. 再将 Fabric.js 的内容也绘制到该 canvas 上
+  // 方法：使用 fabric.Canvas 的 lowerCanvasEl（即实际渲染的 canvas），直接 drawImage 到目标 canvas
+  const fabricCanvasElement = fabricCanvas.getElement(); // 获取 fabric 底层 canvas DOM
+  if (fabricCanvasElement) {
+    //如果fabric画布尺寸和图片不一致，可以调整绘制位置和大小
+    ctx.drawImage(
+      fabricCanvasElement,
+      0,
+      0,
+      fabricCanvasElement.width,
+      fabricCanvasElement.height,
+      0,
+      0,
+      exportCanvas.width,
+      exportCanvas.height // 你可以调整位置，比如居中等
+    );
+  } else {
+    console.warn("⚠️ 无法获取 Fabric.js 的底层 canvas，仅导出背景图");
+  }
+
+  // 5. 导出为 PNG
+  exportCanvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `exported-image-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, "image/png");
+
+  imageCounter.value++;
+
+  // 或者用 toDataURL 直接下载（备选）
+  // const dataURL = exportCanvas.toDataURL("image/png");
+  // const link = document.createElement("a");
+  // link.download = `exported-image-${Date.now()}.png`;
+  // link.href = dataURL;
+  // link.click();
 };
-
-//实时图片
-// ✅ 导出按钮点击时调用的方法
-// const exportImage = () => {
-//   if (!imageElement.value || !canvas) {
-//     alert("❌ 图片或画布未初始化，请稍后再试");
-//     return;
-//   }
-
-//   const imgEl = imageElement.value; // <img ref="imageElement">
-//   const fabricCanvas = canvas; //  Fabric.js canvas 实例
-
-//   if (!imgEl.complete || !imgEl.naturalWidth) {
-//     alert("⚠️ 当前图片尚未加载完成，请稍后重试导出");
-//     return;
-//   }
-
-//   // 1. 创建一个离屏 canvas（用于最终导出）
-//   const exportCanvas = document.createElement("canvas");
-//   const ctx = exportCanvas.getContext("2d");
-
-//   // 2. 设置导出 canvas 的尺寸为图片尺寸（或者你也可以用固定画布尺寸）
-//   exportCanvas.width = imgEl.naturalWidth; // 或者 imageDisplayWidth，如果你缩放过
-//   exportCanvas.height = imgEl.naturalHeight;
-
-//   // 3. 先绘制实时图像（当前 img 标签的帧）
-//   ctx.drawImage(imgEl, 0, 0, exportCanvas.width, exportCanvas.height);
-
-//   // 4. 再将 Fabric.js 的内容也绘制到该 canvas 上
-//   // 方法：使用 fabric.Canvas 的 lowerCanvasEl（即实际渲染的 canvas），直接 drawImage 到目标 canvas
-//   const fabricCanvasElement = fabricCanvas.getElement(); // 获取 fabric 底层 canvas DOM
-//   if (fabricCanvasElement) {
-//     //如果fabric画布尺寸和图片不一致，可以调整绘制位置和大小
-//     ctx.drawImage(
-//       fabricCanvasElement,
-//       0,
-//       0,
-//       fabricCanvasElement.width,
-//       fabricCanvasElement.height,
-//       0,
-//       0,
-//       exportCanvas.width,
-//       exportCanvas.height // 你可以调整位置，比如居中等
-//     );
-//   } else {
-//     console.warn("⚠️ 无法获取 Fabric.js 的底层 canvas，仅导出背景图");
-//   }
-
-//   // 5. 导出为 PNG
-//   exportCanvas.toBlob((blob) => {
-//     const url = URL.createObjectURL(blob);
-//     const a = document.createElement("a");
-//     a.href = url;
-//     a.download = `exported-image-${Date.now()}.png`;
-//     document.body.appendChild(a);
-//     a.click();
-//     document.body.removeChild(a);
-//     URL.revokeObjectURL(url);
-//   }, "image/png");
-
-//   // 或者用 toDataURL 直接下载（备选）
-//   // const dataURL = exportCanvas.toDataURL("image/png");
-//   // const link = document.createElement("a");
-//   // link.download = `exported-image-${Date.now()}.png`;
-//   // link.href = dataURL;
-//   // link.click();
-// };
 
 // 删除当前选中的图形
 const deleteSelected = () => {
@@ -1344,6 +1404,7 @@ const initFabricCanvas = () => {
 
 // 初始化画布
 onMounted(() => {
+  getCameraList();
   console.log(window.location.origin);
   baseUrl.value = window.location.origin;
   // fetchImage().then((res) => {});
@@ -1670,6 +1731,11 @@ onMounted(() => {
         text-align: left;
         height: 50px;
         line-height: 50px;
+        font-size: 16px;
+      }
+
+      .blue {
+        color: #17a2b8;
       }
     }
     .camera-local-info {
@@ -1684,6 +1750,7 @@ onMounted(() => {
         text-align: left;
         height: 50px;
         line-height: 50px;
+        font-size: 16px;
       }
     }
   }
