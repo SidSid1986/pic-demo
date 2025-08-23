@@ -62,8 +62,8 @@
       <div class="too-edit">
         <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
         <button @click="exportImage" class="export-btn">📥 导出图片</button>
-        <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
-        <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button>
+        <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
+        <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button> -->
       </div>
     </div>
     <div ref="exportWrapper" class="img-wrapper export-image-wrapper">
@@ -115,7 +115,7 @@
         class="fabric-canvas"
         style="position: absolute; top: 0; left: 0"
       ></canvas>
-      <div class="noImg" v-if="noImg">图片加载失败</div>
+      <div class="noImg" v-if="noImg">暂无图像</div>
     </div>
 
     <div class="camera-wrapper">
@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
@@ -296,7 +296,11 @@ const getImageInfo = async () => {
 
 const changeCamera = (e) => {
   console.log(e);
-  getImageInfo();
+
+  // setTimeout(() => {
+  //   getImageInfo();
+  // }, 3000);
+  //
 };
 
 // 更新画笔颜色
@@ -1346,6 +1350,7 @@ const onImageLoad = () => {
   initFabricCanvas();
 
   isImageReady.value = true;
+  getImageInfo();
 };
 
 //图片加载失败
