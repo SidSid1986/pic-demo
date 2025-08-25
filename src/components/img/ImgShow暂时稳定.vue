@@ -1,77 +1,69 @@
 <template>
   <div class="img-container">
-    <div class="toolbar-wrapper">
-      <div
-        class="toolbar"
-        :style="{ height: toolbarHeight }"
-        :class="{ active: isDrawing }"
-      >
-        <div class="free-content">
-          <div class="btn-free-pick">
-            <button
-              @click="setFreeDrawingMode"
-              class="btn-free"
-              :class="{ active: isDrawing }"
-            >
-              ✏️ 画笔
-            </button>
-            <!-- <el-color-picker
+    <div class="toolbar">
+      <div class="free-content">
+        <div class="btn-free-pick">
+          <button
+            @click="setFreeDrawingMode"
+            class="btn-free"
+            :class="{ active: isDrawing }"
+          >
+            ✏️ 画笔
+          </button>
+          <!-- <el-color-picker
             @change="updateBrushColor"
             v-model="brushColor"
             size="small"
             show-alpha
             :predefine="predefineColors"
           /> -->
-            <input
-              class="color-picker"
-              type="color"
-              v-model="brushColor"
-              @input="updateBrushColor"
-              title="选择画笔颜色"
-            />
-          </div>
-          <div class="free-size">
-            <span>粗细: {{ brushSize }}px </span>
-            <input
-              class="brush-slider"
-              type="range"
-              min="1"
-              max="20"
-              v-model="brushSize"
-              @input="updateBrushSize"
-            />
-          </div>
+          <input
+            class="color-picker"
+            type="color"
+            v-model="brushColor"
+            @input="updateBrushColor"
+            title="选择画笔颜色"
+          />
         </div>
-        <div class="tool-mid">
-          <button @click="setRectangleDragMode(true)" class="rectangle-btn">
-            🔲 矩形
-          </button>
-          <button @click="setCircleDragMode(true)" class="circle-btn">
-            ⭕ 圆
-          </button>
-          <button @click="setEllipseDragMode(true)" class="ellipse-btn">
-            🥚 椭圆
-          </button>
-          <button
-            @click="setArrowDragMode(true)"
-            :class="{ active: isArrowDragMode }"
-          >
-            ​​➡️​​ 箭头
-          </button>
+        <div class="free-size">
+          <span>粗细: {{ brushSize }}px </span>
+          <input
+            class="brush-slider"
+            type="range"
+            min="1"
+            max="20"
+            v-model="brushSize"
+            @input="updateBrushSize"
+          />
+        </div>
+      </div>
+      <div class="tool-mid">
+        <button @click="setRectangleDragMode(true)" class="rectangle-btn">
+          🔲 矩形
+        </button>
+        <button @click="setCircleDragMode(true)" class="circle-btn">
+          ⭕ 圆
+        </button>
+        <button @click="setEllipseDragMode(true)" class="ellipse-btn">
+          🥚 椭圆
+        </button>
+        <button
+          @click="setArrowDragMode(true)"
+          :class="{ active: isArrowDragMode }"
+        >
+          ​​➡️​​ 箭头
+        </button>
 
-          <button @click="setTriangleDragMode(true)" class="triangle-btn">
-            🔺 三角形
-          </button>
-          <button @click="setTextMode(true)" class="text-btn">📝文本</button>
-        </div>
-        <div class="too-edit">
-          <button @click="deleteSelected" class="delete-btn">
-            🗑️ 删除选中
-          </button>
-          <button @click="exportImage" class="export-btn">📥 导出图片</button>
-          <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
+        <button @click="setTriangleDragMode(true)" class="triangle-btn">
+          🔺 三角形
+        </button>
+        <button @click="setTextMode(true)" class="text-btn">📝文本</button>
+      </div>
+      <div class="too-edit">
+        <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
+        <button @click="exportImage" class="export-btn">📥 导出图片</button>
+        <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button> -->
-        </div>
       </div>
     </div>
     <div ref="exportWrapper" class="img-wrapper export-image-wrapper">
@@ -130,14 +122,12 @@
       <div class="camera-border">
         <div class="camera-img-info">
           <span
-            >图像获取耗时:<span class="blue"
-              >{{ imageInfoData.latest_frame_time }}ms</span
-            ></span
+            >图像获取耗时:<span class="blue">{{
+              imageInfoData.latest_frame_time
+            }}</span></span
           >
           <span
-            >图像处理耗时:<span class="blue"
-              >{{ processWidthProp }}ms</span
-            ></span
+            >图像处理耗时:<span class="blue">{{ processTimeProp }}</span></span
           >
         </div>
         <div class="camera-local-info">
@@ -146,7 +136,7 @@
           <el-select
             v-model="valueCamera"
             placeholder="请选择相机"
-            style="width: 180px"
+            style="width: 120px"
             @change="changeCamera"
             no-data-text="暂无数据"
           >
@@ -164,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
@@ -179,20 +169,12 @@ import {
 import html2canvas from "html2canvas";
 
 const props = defineProps({
-  processWidthProp: {
+  processTimeProp: {
     type: Number,
-    default: 0,
-  },
-
-  rightWidthProp: {
-    //
-    type: Number, //
-    default: 49.5, // 默认值
+    default: "",
   },
 });
 
-// 动态控制 toolbar 高度
-const toolbarHeight = ref("100px");
 const imageInfoData = ref({});
 
 const valueCamera = ref(null);
@@ -229,8 +211,6 @@ const isImageReady = ref(false);
 const imageElement = ref(null);
 const baseUrl = ref("");
 
-// const baseUrl = import.meta.env.VITE_APP_API_HOST;
-// const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
 const predefineColors = ref([
   "#ff4500",
   "#ff8c00",
@@ -298,23 +278,6 @@ const canvasStates = ref([
 // 文本模式（新增！）
 const isTextMode = ref(false);
 
-// 监听 processWidthProp，小于 30 => 200px，否则 100px
-watch(
-  () => props.rightWidthProp,
-  (newVal) => {
-    if (typeof newVal === "number" && newVal < 34) {
-      console.log("⚠️ processWidthProp < 30，设置 toolbar 高度为 200px");
-      toolbarHeight.value = "200px";
-    } else {
-      console.log(
-        "✅ processWidthProp >= 30 或非数字，设置 toolbar 高度为 100px"
-      );
-      toolbarHeight.value = "100px";
-    }
-  },
-  { immediate: true } // 立即执行，确保初始状态正确
-);
-
 //camera list
 const getCameraList = async () => {
   const res = await cameraList();
@@ -331,11 +294,6 @@ const getImageInfo = async () => {
 
 const changeCamera = (e) => {
   console.log(e);
-
-  // setTimeout(() => {
-  //   getImageInfo();
-  // }, 3000);
-  //
 };
 
 // 更新画笔颜色
@@ -465,9 +423,9 @@ const drawRectangle = (startX, startY, endX, endY) => {
 // 清除矩形预览
 const clearPreviewRectangle = () => {
   if (previewRect) {
-    canvas.remove(previewRect); // ✅ 移除实际的矩形对象
-    previewRect = null; // ✅ 清空引用
-    canvas.renderAll(); // ✅ 刷新画布
+    canvas.remove(previewRect); // 移除实际的矩形对象
+    previewRect = null; // 清空引用
+    canvas.renderAll(); // 刷新画布
   }
 };
 
@@ -1356,7 +1314,7 @@ const onImageLoad = () => {
 
   // 2. 计算最大允许缩放比例
   const maxWidth = 400;
-  const maxHeight = 550;
+  const maxHeight = 600;
 
   const scaleByWidth = maxWidth / imageNaturalWidth;
   const scaleByHeight = maxHeight / imageNaturalHeight;
@@ -1500,24 +1458,22 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .img-container {
-  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
 
   height: 100vh;
-  // width: 49.5vw;
+  width: 49vw;
   border: 1px solid pink;
   box-sizing: border-box;
 
   // background-color: red;;
 
   .img-wrapper {
-    margin-top: 10px;
     // border: 3px solid red; // 可视化边界（调试用，可删）
     position: relative;
-    width: 400px;
+    width: 600px;
   }
 
   .norem-img-content {
@@ -1540,22 +1496,13 @@ onMounted(() => {
     left: 0;
   }
 
-  .toolbar-wrapper {
-    width: 100%;
-    // height: 200px;
-    // border:1px solid red;
-    padding: 0 30px;
-  }
-
   .toolbar {
-    width: 100%;
-    // border: 1px solid blue;
-    // height: 100px;
-    // height: 100px;
+    width: 46vw;
+    height: 100px;
     padding: 5px 20px;
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     box-sizing: border-box;
     background: #f8f9fa;
     border-radius: 12px;
@@ -1770,8 +1717,6 @@ onMounted(() => {
 }
 
 .camera-wrapper {
-  position: absolute;
-  bottom: 0px;
   width: 100%;
   box-sizing: border-box;
   // border: 1px solid red;

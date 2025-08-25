@@ -72,7 +72,7 @@
           bgColor="rgba(238,238,238,0.5)"
           :gap="16"
         />
-        <MiniMap />
+        <!-- <MiniMap /> -->
         <Controls
           :showFitView="false"
           :showInteractive="false"
@@ -105,11 +105,17 @@
           top: contextMenuPosition.y + 'px',
         }"
       >
-        <div @click="() => handleNodeMenuAction('edit')" class="menu-item">
+        <!-- <div @click="() => handleNodeMenuAction('edit')" class="menu-item">
           ✏️ 编辑节点
-        </div>
+        </div> -->
         <div @click="() => handleNodeMenuAction('delete')" class="menu-item">
           🗑️ 删除节点
+        </div>
+        <div
+          @click="() => handleNodeMenuAction('deleteEdge')"
+          class="menu-item"
+        >
+          🗑️ 删除连线
         </div>
         <!-- 可继续添加其它操作，比如复制、查看详情等 -->
       </div>
@@ -131,6 +137,13 @@ import "@vue-flow/core/dist/style.css";
 import { processImage, steps } from "@/api/common";
 
 const emit = defineEmits(["changeTime"]);
+
+const props = defineProps({
+  panelWidth: {
+    type: Number,
+    default: 49.5,
+  },
+});
 
 const processTime = ref(null);
 const nodes = ref([]);
@@ -367,6 +380,18 @@ const deleteSelectedEdge = () => {
   );
   edges.value = edges.value.filter((edge) => !selectedIds.includes(edge.id));
   selectedEdges.value = [];
+};
+
+const deleteSelectedAllEdge = () => {
+  const nodeId = selectedNodeForMenu.value.id;
+  console.log(`  准备删除与节点 [${nodeId}] 相连的所有连线`);
+  edges.value = edges.value.filter(
+    (edge) => edge.source !== nodeId && edge.target !== nodeId
+  );
+  console.log(`  已删除与节点 [${nodeId}] 相连的所有连线`);
+  // 可选：清除选中状态
+  selectedEdges.value = [];
+  selectedNodes.value = [];
 };
 
 onInit((vueFlowInstance) => {
@@ -838,6 +863,8 @@ const handleNodeMenuAction = (action) => {
   } else if (action === "edit") {
     // 编辑节点逻辑
     console.log(`编辑节点: ${selectedNodeForMenu.value.data.label}`);
+  } else if (action === "deleteEdge") {
+    deleteSelectedAllEdge();
   }
 
   // 关闭菜单
@@ -863,13 +890,12 @@ onMounted(() => {
 .flow-container {
   display: flex;
   height: 100vh;
-  width: 50vw;
+  width: 100%; // 使用 100%，通过父级控制实际宽度
   box-sizing: border-box;
 }
 
 .flow-menu {
   width: 10vw;
-  /* padding: 16px; */
   background: #f5f5f7;
   border: 1px solid pink;
 }
@@ -909,8 +935,7 @@ onMounted(() => {
 
 .flow-content {
   height: 100vh;
-  width: 40vw;
-  border: 1px solid pink;
+  width: calc(100% - 10vw); // 菜单占10vw，画布占剩余部分
   box-sizing: border-box;
 }
 

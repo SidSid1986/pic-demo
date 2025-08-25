@@ -1,77 +1,69 @@
 <template>
   <div class="img-container">
-    <div class="toolbar-wrapper">
-      <div
-        class="toolbar"
-        :style="{ height: toolbarHeight }"
-        :class="{ active: isDrawing }"
-      >
-        <div class="free-content">
-          <div class="btn-free-pick">
-            <button
-              @click="setFreeDrawingMode"
-              class="btn-free"
-              :class="{ active: isDrawing }"
-            >
-              ✏️ 画笔
-            </button>
-            <!-- <el-color-picker
+    <div class="toolbar">
+      <div class="free-content">
+        <div class="btn-free-pick">
+          <button
+            @click="setFreeDrawingMode"
+            class="btn-free"
+            :class="{ active: isDrawing }"
+          >
+            ✏️ 画笔
+          </button>
+          <!-- <el-color-picker
             @change="updateBrushColor"
             v-model="brushColor"
             size="small"
             show-alpha
             :predefine="predefineColors"
           /> -->
-            <input
-              class="color-picker"
-              type="color"
-              v-model="brushColor"
-              @input="updateBrushColor"
-              title="选择画笔颜色"
-            />
-          </div>
-          <div class="free-size">
-            <span>粗细: {{ brushSize }}px </span>
-            <input
-              class="brush-slider"
-              type="range"
-              min="1"
-              max="20"
-              v-model="brushSize"
-              @input="updateBrushSize"
-            />
-          </div>
+          <input
+            class="color-picker"
+            type="color"
+            v-model="brushColor"
+            @input="updateBrushColor"
+            title="选择画笔颜色"
+          />
         </div>
-        <div class="tool-mid">
-          <button @click="setRectangleDragMode(true)" class="rectangle-btn">
-            🔲 矩形
-          </button>
-          <button @click="setCircleDragMode(true)" class="circle-btn">
-            ⭕ 圆
-          </button>
-          <button @click="setEllipseDragMode(true)" class="ellipse-btn">
-            🥚 椭圆
-          </button>
-          <button
-            @click="setArrowDragMode(true)"
-            :class="{ active: isArrowDragMode }"
-          >
-            ​​➡️​​ 箭头
-          </button>
+        <div class="free-size">
+          <span>粗细: {{ brushSize }}px </span>
+          <input
+            class="brush-slider"
+            type="range"
+            min="1"
+            max="20"
+            v-model="brushSize"
+            @input="updateBrushSize"
+          />
+        </div>
+      </div>
+      <div class="tool-mid">
+        <button @click="setRectangleDragMode(true)" class="rectangle-btn">
+          🔲 矩形
+        </button>
+        <button @click="setCircleDragMode(true)" class="circle-btn">
+          ⭕ 圆
+        </button>
+        <button @click="setEllipseDragMode(true)" class="ellipse-btn">
+          🥚 椭圆
+        </button>
+        <button
+          @click="setArrowDragMode(true)"
+          :class="{ active: isArrowDragMode }"
+        >
+          ​​➡️​​ 箭头
+        </button>
 
-          <button @click="setTriangleDragMode(true)" class="triangle-btn">
-            🔺 三角形
-          </button>
-          <button @click="setTextMode(true)" class="text-btn">📝文本</button>
-        </div>
-        <div class="too-edit">
-          <button @click="deleteSelected" class="delete-btn">
-            🗑️ 删除选中
-          </button>
-          <button @click="exportImage" class="export-btn">📥 导出图片</button>
-          <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
+        <button @click="setTriangleDragMode(true)" class="triangle-btn">
+          🔺 三角形
+        </button>
+        <button @click="setTextMode(true)" class="text-btn">📝文本</button>
+      </div>
+      <div class="too-edit">
+        <button @click="deleteSelected" class="delete-btn">🗑️ 删除选中</button>
+        <button @click="exportImage" class="export-btn">📥 导出图片</button>
+        <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button> -->
-        </div>
       </div>
     </div>
     <div ref="exportWrapper" class="img-wrapper export-image-wrapper">
@@ -85,28 +77,27 @@
       /> -->
 
       <!-- 项目暂用 -->
+
       <img
+        ref="imageElement"
+        class="norem-img-content"
+        :src="imageUrl"
+        alt=""
+        @load="onImageLoad"
+        @error="onImageError"
+      />
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      />
-
+      /> -->
       <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}`"
-        alt=""
-        @load="onImageLoad"
-        @error="onImageError"
-      /> -->
-
-      <!-- <img
-        ref="imageElement"
-        class="norem-img-content"
-        :src="`${baseUrl}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
@@ -130,14 +121,12 @@
       <div class="camera-border">
         <div class="camera-img-info">
           <span
-            >图像获取耗时:<span class="blue"
-              >{{ imageInfoData.latest_frame_time }}ms</span
-            ></span
+            >图像获取耗时:<span class="blue">{{
+              imageInfoData.latest_frame_time
+            }}</span></span
           >
           <span
-            >图像处理耗时:<span class="blue"
-              >{{ processWidthProp }}ms</span
-            ></span
+            >图像处理耗时:<span class="blue">{{ processTimeProp }}</span></span
           >
         </div>
         <div class="camera-local-info">
@@ -146,7 +135,7 @@
           <el-select
             v-model="valueCamera"
             placeholder="请选择相机"
-            style="width: 180px"
+            style="width: 120px"
             @change="changeCamera"
             no-data-text="暂无数据"
           >
@@ -164,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, nextTick, onBeforeUnmount, watch } from "vue";
 import { fabric } from "fabric";
 import bgImage from "@/assets/123.jpg";
 import pen from "@/assets/pen.png";
@@ -176,23 +165,17 @@ import {
   imageInfo,
 } from "@/api/common";
 
+import axios from "axios";
+
 import html2canvas from "html2canvas";
 
 const props = defineProps({
-  processWidthProp: {
+  processTimeProp: {
     type: Number,
-    default: 0,
-  },
-
-  rightWidthProp: {
-    //
-    type: Number, //
-    default: 49.5, // 默认值
+    default: "",
   },
 });
 
-// 动态控制 toolbar 高度
-const toolbarHeight = ref("100px");
 const imageInfoData = ref({});
 
 const valueCamera = ref(null);
@@ -228,6 +211,10 @@ const noImg = ref(false);
 const isImageReady = ref(false);
 const imageElement = ref(null);
 const baseUrl = ref("");
+const imageUrl = ref("");
+
+// 用于控制请求的 AbortController
+let controller = null;
 
 // const baseUrl = import.meta.env.VITE_APP_API_HOST;
 // const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
@@ -297,23 +284,6 @@ const canvasStates = ref([
 
 // 文本模式（新增！）
 const isTextMode = ref(false);
-
-// 监听 processWidthProp，小于 30 => 200px，否则 100px
-watch(
-  () => props.rightWidthProp,
-  (newVal) => {
-    if (typeof newVal === "number" && newVal < 34) {
-      console.log("⚠️ processWidthProp < 30，设置 toolbar 高度为 200px");
-      toolbarHeight.value = "200px";
-    } else {
-      console.log(
-        "✅ processWidthProp >= 30 或非数字，设置 toolbar 高度为 100px"
-      );
-      toolbarHeight.value = "100px";
-    }
-  },
-  { immediate: true } // 立即执行，确保初始状态正确
-);
 
 //camera list
 const getCameraList = async () => {
@@ -1138,6 +1108,7 @@ const exportImage = async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    loadCameraImage(); //
   }, "image/png");
 
   imageCounter.value++;
@@ -1340,6 +1311,69 @@ const loadCanvas = () => {
 //   alert("✅ 蒙版已回显！（不含背景图，只恢复图形）");
 // };
 
+// 加载摄像头图像 —— 使用 axios + AbortController
+const loadCameraImage = async () => {
+  // 1. 取消上一次未完成的请求
+  if (controller) {
+    controller.cancel("取消上一个未完成的请求");
+    controller = null;
+  }
+
+  // 2. 创建新的 Axios CancelToken（通过 AbortController 适配，axios 0.22+ 支持 signal）
+  // 注意：axios 直接支持 signal（Fetch-like），无需手动 CancelToken
+  controller = new AbortController();
+
+  const timeoutId = setTimeout(() => {
+    console.warn("⏳ [loadCameraImage] 请求超时，主动取消");
+    controller.abort(); // 超时 5 秒后取消请求
+  }, 5000); // 超时时间：5秒，可调整
+
+  try {
+    // 3. 拼接请求 URL
+    const url = `${baseUrl.value}/api/get_fetch_image?camera_index=${valueCamera.value}&t=${imageCounter.value}`;
+    console.log("[loadCameraImage] 请求图像：", url);
+
+    // 4. 使用 axios 发起请求，传入 signal 用于取消
+    const response = await axios.get(url, {
+      responseType: "blob", // 重要！告诉 axios 返回的是二进制 Blob 数据
+      signal: controller.signal, // 支持取消请求
+    });
+
+    // 5. 清除超时定时器
+    clearTimeout(timeoutId);
+
+    // 6. 获取图片 Blob
+    const blob = response.data;
+
+    // 7. 生成 ObjectURL，用于 <img :src>
+    const objectUrl = URL.createObjectURL(blob);
+    imageUrl.value = objectUrl; // 设置给 <img :src>
+
+    console.log("✅ 图像加载成功，已设置 ObjectURL");
+  } catch (err) {
+    // 8. 捕获错误：网络错误、服务无响应、超时、取消等
+    clearTimeout(timeoutId);
+
+    if (axios.isCancel(err)) {
+      console.warn(
+        "  [loadCameraImage] 请求被取消（超时或手动终止）:",
+        err.message
+      );
+    } else {
+      console.error("  [loadCameraImage] 加载摄像头图像失败：", err);
+    }
+
+    // 9. 加载失败时，清除 imageUrl，可触发 UI 显示“暂无图像”
+    imageUrl.value = ""; // 不显示图片
+
+    // 10. 调用你的错误处理逻辑，比如显示 noImg 提示
+    onImageError(err);
+  } finally {
+    // 11. 清理 controller
+    controller = null;
+  }
+};
+
 // 图片加载完成后的处理
 const onImageLoad = () => {
   imageElement.value.style.display = "block";
@@ -1356,7 +1390,7 @@ const onImageLoad = () => {
 
   // 2. 计算最大允许缩放比例
   const maxWidth = 400;
-  const maxHeight = 550;
+  const maxHeight = 600;
 
   const scaleByWidth = maxWidth / imageNaturalWidth;
   const scaleByHeight = maxHeight / imageNaturalHeight;
@@ -1455,6 +1489,12 @@ const initFabricCanvas = () => {
   });
 };
 
+watch(valueCamera, () => {
+  console.log("检测到相机切换，重新加载图像");
+  imageCounter.value += 1; // 避免缓存
+  loadCameraImage(); // 重新拉取图像
+});
+
 // 初始化画布
 onMounted(() => {
   getCameraList();
@@ -1496,28 +1536,38 @@ onMounted(() => {
   //   handleTriangleDragMouseUp(opt);
   // });
 });
+
+onBeforeUnmount(() => {
+  if (controller) {
+    controller.abort();
+    controller = null;
+  }
+
+  if (imageUrl.value && imageUrl.value.startsWith("blob:")) {
+    console.log("组件销毁，释放 ObjectURL:", imageUrl.value);
+    URL.revokeObjectURL(imageUrl.value);
+  }
+});
 </script>
 
 <style lang="scss" scoped>
 .img-container {
-  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
 
   height: 100vh;
-  // width: 49.5vw;
+  width: 49vw;
   border: 1px solid pink;
   box-sizing: border-box;
 
   // background-color: red;;
 
   .img-wrapper {
-    margin-top: 10px;
     // border: 3px solid red; // 可视化边界（调试用，可删）
     position: relative;
-    width: 400px;
+    width: 600px;
   }
 
   .norem-img-content {
@@ -1540,22 +1590,13 @@ onMounted(() => {
     left: 0;
   }
 
-  .toolbar-wrapper {
-    width: 100%;
-    // height: 200px;
-    // border:1px solid red;
-    padding: 0 30px;
-  }
-
   .toolbar {
-    width: 100%;
-    // border: 1px solid blue;
-    // height: 100px;
-    // height: 100px;
+    width: 46vw;
+    height: 100px;
     padding: 5px 20px;
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     box-sizing: border-box;
     background: #f8f9fa;
     border-radius: 12px;
@@ -1770,8 +1811,6 @@ onMounted(() => {
 }
 
 .camera-wrapper {
-  position: absolute;
-  bottom: 0px;
   width: 100%;
   box-sizing: border-box;
   // border: 1px solid red;
