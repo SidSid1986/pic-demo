@@ -15,46 +15,14 @@
       </button> -->
       <!-- <div>节点库</div> -->
       <div class="node-templates-container">
-        <div class="node-templates-border">
-          <el-menu
-            default-active=""
-            mode="vertical"
-            class="node-menu"
-            @select="handleMenuSelect"
-          >
-            <!-- 遍历每一个分组 -->
-            <el-sub-menu
-              v-for="(group, groupIdx) in nodeTemplates"
-              :key="groupIdx"
-              :index="`group-${groupIdx}`"
-            >
-              <!-- 一级菜单标题：显示分组名，比如「测试集合1」 -->
-              <template #title>
-                <span>{{ group.groupName }}</span>
-              </template>
-
-              <!-- 遍历该分组下的所有节点 -->
-              <el-menu-item
-                v-for="(node, nodeIdx) in group.nodes"
-                :key="nodeIdx"
-                :index="`node-${groupIdx}-${nodeIdx}`"
-                class="menu-item-wrapper"
-              >
-                <!-- 🎯 关键：使用插槽 #default 自定义内容，放入一个可拖拽的 div -->
-                <template #default>
-                  <div
-                    draggable="true"
-                    @dragstart="
-                      (e) => onDragStart(e, node, { groupIdx, nodeIdx })
-                    "
-                    class="draggable-menu-node"
-                  >
-                    {{ node.data.label }}
-                  </div>
-                </template>
-              </el-menu-item>
-            </el-sub-menu>
-          </el-menu>
+        <div
+          v-for="(item, idx) in nodeTemplates"
+          :key="idx"
+          class="node-template"
+          draggable="true"
+          @dragstart="(e) => onDragStart(e, item, idx)"
+        >
+          <span>{{ item.data.label }}</span>
         </div>
       </div>
     </div>
@@ -70,7 +38,7 @@
         :elements-selectable="true"
         :class="{ dark }"
         class="basic-flow"
-        :default-viewport="{ zoom: 1.1 }"
+        :default-viewport="{ zoom: 1.5 }"
         :min-zoom="0.2"
         :max-zoom="4"
         :node-types="nodeTypes"
@@ -281,29 +249,11 @@ const getSteps = () => {
   steps().then((res) => {
     console.log(res);
 
-    // nodeTemplates.value = res.map((step, idx) => ({
-    //   // id: `node-${step.id}`,
-    //   type: "custom",
-    //   data: { stepId: step.id, label: step.name, type: "step" },
-    // }));
-
-    //做菜单的测试集合--仅作测试用
-    nodeTemplates.value = [
-      {
-        groupName: "测试集合1", // 一级菜单名称
-        nodes: res.map((step) => ({
-          type: "custom",
-          data: { stepId: step.id, label: step.name, type: "step" },
-        })),
-      },
-      {
-        groupName: "测试集合2", // 一级菜单名称
-        nodes: res.map((step) => ({
-          type: "custom",
-          data: { stepId: step.id, label: step.name, type: "step" },
-        })),
-      },
-    ];
+    nodeTemplates.value = res.map((step, idx) => ({
+      // id: `node-${step.id}`,
+      type: "custom",
+      data: { stepId: step.id, label: step.name, type: "step" },
+    }));
   });
 };
 
@@ -990,36 +940,36 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-// .node-templates-container {
-//   margin-top: 15px;
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-//   justify-content: center;
-//   /* border: 1px solid red; */
-// }
-// .node-template {
-//   margin-bottom: 4px;
-//   padding: 8px;
-//   background: #fff;
-//   border: 1px solid #ddd;
-//   cursor: grab;
-//   width: 120px;
-//   height: 60px;
-//   border-radius: 10px;
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-//   justify-content: center;
-//   span {
-//     display: inline-block;
-//     // background-color: red;
-//   }
-// }
+.node-templates-container {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* border: 1px solid red; */
+}
+.node-template {
+  margin-bottom: 4px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  cursor: grab;
+  width: 120px;
+  height: 60px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  span {
+    display: inline-block;
+    // background-color: red;
+  }
+}
 
-// .node-template:hover {
-//   background: #e3eafa;
-// }
+.node-template:hover {
+  background: #e3eafa;
+}
 
 // 菜单样式
 .node-context-menu {
@@ -1042,146 +992,5 @@ onMounted(() => {
 
 .node-context-menu .menu-item:hover {
   background-color: #f0f0f0;
-}
-
-//menu
-.node-templates-container {
-  // border: 1px solid red;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  height: 70vh;
-  padding: 20px 0;
-  .node-templates-border {
-    width: 9vw;
-    height: 100%;
-    border: 1px solid #e4e7ed;
-    border-radius: 6px;
-    padding: 12px;
-    background: #fafafa;
-
-    // 滚动条样式隐藏
-    // overflow-y: auto;
-    // scrollbar-width: none;
-    // -ms-overflow-style: none;
-
-    //单独设置滚动条样式
-    overflow-y: auto; /* 显示垂直滚动条 */
-    /* 对于 Firefox 的基础设置 */
-    scrollbar-width: thin; /* 滚动条宽度：auto/thin/none */
-    scrollbar-color: #4a90e2 #f0f0f0; /* 滑块颜色 轨道颜色 */
-
-    /* WebKit 浏览器滚动条样式 (Chrome, Safari, Edge) */
-
-    /* 滚动条整体 */
-    ::-webkit-scrollbar {
-      width: 8px; /* 滚动条宽度 */
-      height: 8px; /* 水平滚动条高度 */
-    }
-
-    /* 滚动条轨道 */
-    ::-webkit-scrollbar-track {
-      background: #f0f0f0; /* 轨道背景色 */
-      border-radius: 4px; /* 轨道圆角 */
-    }
-
-    /* 滚动条滑块 */
-    ::-webkit-scrollbar-thumb {
-      background-color: #4a90e2; /* 滑块颜色 */
-      border-radius: 4px; /* 滑块圆角 */
-      border: 2px solid transparent; /* 透明边框，用于控制滑块与轨道的间距 */
-      background-clip: content-box; /* 确保背景色只填充内容区域，不包括边框 */
-    }
-
-    /* 滚动条滑块悬停状态 */
-    ::-webkit-scrollbar-thumb:hover {
-      background-color: #357abd; /* 悬停时的滑块颜色 */
-    }
-
-    /* 滚动条滑块激活状态（点击时） */
-    ::-webkit-scrollbar-thumb:active {
-      background-color: #286090; /* 激活时的滑块颜色 */
-    }
-
-    /* 滚动条角落（水平和垂直滚动条交汇处） */
-    ::-webkit-scrollbar-corner {
-      background: #f0f0f0; /* 角落背景色 */
-    }
-  }
-}
-
-.menu-title {
-  border: 1px solid red;
-  // margin-bottom: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.node-menu {
-  border: none;
-  background: transparent;
-  ::v-deep .el-menu-item {
-    background: transparent;
-    border: none;
-    height: auto;
-    line-height: normal;
-    padding: 6px 12px;
-    &.is-active {
-      background-color: #ecf5ff;
-      color: #409eff;
-    }
-  }
-}
-
-.menu-item-wrapper {
-  // border: 1px solid red !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-}
-
-.draggable-menu-node {
-  cursor: grab;
-  padding: 8px 00px;
-  border-radius: 4px;
-  background: white;
-  border: 1px solid #dcdfe6;
-  // text-align: center;
-  width: 7vw !important;
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &:hover {
-    background-color: #f0f9ff;
-    border-color: #409eff;
-  }
-}
-
-.el-sub-menu {
-  background-color: #28a745 !important;
-  margin-bottom: 10px !important;
-  border-radius: 6px !important;
-}
-
-.el-sub-menu:hover {
-  background-color: #218838 !important;
-  border-radius: 6px !important;
-}
-
-:deep(.el-sub-menu__title) {
-  color: #ffffff !important;
-  font-weight: bold;
-  border-radius: 6px !important;
-}
-
-:deep(.el-sub-menu__title:hover) {
-  background-color: #218838 !important;
-  border-radius: 6px !important;
 }
 </style>

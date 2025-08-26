@@ -61,7 +61,7 @@ const startDrag = (e) => {
   document.addEventListener("mouseup", stopDrag);
 
   // 阻止默认的拖拽行为与文本选择
-  e.preventDefault();
+  // e.preventDefault();
 };
 
 // 拖拽中
@@ -177,7 +177,7 @@ onUnmounted(() => {
 .left-panel,
 .right-panel {
   height: 100%;
-  /* overflow: auto; */
+  overflow: auto;
 }
 
 .divider {
@@ -227,11 +227,11 @@ onUnmounted(() => {
 
 .container * {
   box-sizing: border-box;
-  /* -webkit-user-drag: none; */
-  /* -khtml-user-drag: none; */
-  /* -moz-user-drag: none; */
-  /* -o-user-drag: none; */
-  /* user-drag: none; */
+  /* -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none; */
 }
 
 .divider {

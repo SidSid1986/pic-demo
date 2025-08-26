@@ -146,7 +146,7 @@
           <el-select
             v-model="valueCamera"
             placeholder="请选择相机"
-            style="width: 180px"
+            class="change-camera"
             @change="changeCamera"
             no-data-text="暂无数据"
           >
@@ -181,7 +181,7 @@ import html2canvas from "html2canvas";
 const props = defineProps({
   processWidthProp: {
     type: Number,
-    default: 0,
+    default: null,
   },
 
   rightWidthProp: {
@@ -192,7 +192,7 @@ const props = defineProps({
 });
 
 // 动态控制 toolbar 高度
-const toolbarHeight = ref("100px");
+const toolbarHeight = ref("10vh");
 const imageInfoData = ref({});
 
 const valueCamera = ref(null);
@@ -298,21 +298,16 @@ const canvasStates = ref([
 // 文本模式（新增！）
 const isTextMode = ref(false);
 
-// 监听 processWidthProp，小于 30 => 200px，否则 100px
 watch(
   () => props.rightWidthProp,
   (newVal) => {
     if (typeof newVal === "number" && newVal < 34) {
-      console.log("⚠️ processWidthProp < 30，设置 toolbar 高度为 200px");
-      toolbarHeight.value = "200px";
+      toolbarHeight.value = "21vh";
     } else {
-      console.log(
-        "✅ processWidthProp >= 30 或非数字，设置 toolbar 高度为 100px"
-      );
-      toolbarHeight.value = "100px";
+      toolbarHeight.value = "10vh";
     }
   },
-  { immediate: true } // 立即执行，确保初始状态正确
+  { immediate: true }
 );
 
 //camera list
@@ -1817,6 +1812,9 @@ onMounted(() => {
         height: 50px;
         line-height: 50px;
         font-size: 16px;
+      }
+      .change-camera {
+        width: 120px;
       }
     }
   }

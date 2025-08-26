@@ -57,16 +57,16 @@ defineProps({
 // 句柄样式（可根据节点类型差异化）
 const handleTargetStyle = {
   background: "#ff4444",
-  width: "4px",
-  height: "4px",
+  width: "8px",
+  height: "8px",
   borderRadius: "50%",
   border: "1px solid #ffffff",
 };
 
 const handleSourceStyle = {
   background: "#00c853",
-  width: "4px",
-  height: "4px",
+  width: "8px",
+  height: "8px",
   borderRadius: "50%",
   border: "1px solid #ffffff",
 };
