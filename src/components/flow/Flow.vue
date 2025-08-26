@@ -1123,7 +1123,7 @@ onMounted(() => {
 .node-menu {
   border: none;
   background: transparent;
-  ::v-deep .el-menu-item {
+  :deep(.el-menu-item) {
     background: transparent;
     border: none;
     height: auto;
