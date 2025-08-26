@@ -85,14 +85,14 @@
       /> -->
 
       <!-- 项目暂用 -->
-      <img
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      />
+      /> -->
 
       <!-- <img
         ref="imageElement"
@@ -111,13 +111,13 @@
         @load="onImageLoad"
         @error="onImageError"
       /> -->
-      <!-- <img
+      <img
         ref="imageElement"
         class="norem-img-content"
-        src="../../assets/123.jpg"
+        src="../../assets/333.jpg"
         alt=""
         @load="onImageLoad"
-      /> -->
+      />
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
@@ -166,7 +166,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from "vue";
 import { fabric } from "fabric";
-import bgImage from "@/assets/123.jpg";
+import bgImage from "@/assets/111.jpg";
 import pen from "@/assets/pen.png";
 import {
   fetchImage,
@@ -301,10 +301,79 @@ const isTextMode = ref(false);
 watch(
   () => props.rightWidthProp,
   (newVal) => {
-    if (typeof newVal === "number" && newVal < 34) {
+    console.log(newVal + "vw宽度");
+    console.log(typeof newVal);
+
+    const viewportWidthPx = window.innerWidth;
+    const targetWidthVw = newVal; // 比如 35
+    let targetWidthPx = (targetWidthVw / 100) * viewportWidthPx;
+
+    console.log(`视口总宽度: ${viewportWidthPx}px`);
+    console.log(`目标宽度（${newVal}vw）: ${targetWidthPx}px`);
+
+    //  预留边距逻辑
+    const horizontalPaddingPx = 20; // 左右留白总共 20px（可调整为 10~20）
+    targetWidthPx = targetWidthPx - horizontalPaddingPx;
+
+    // 可选：设置一个最小宽度，避免图片过小
+    const minDisplayWidth = 100;
+    if (targetWidthPx < minDisplayWidth) {
+      targetWidthPx = minDisplayWidth;
+      console.log(`调整后宽度过小，已限制为最小宽度: ${targetWidthPx}px`);
+    }
+
+    //  保留原有的工具栏高度逻辑
+    if (typeof newVal === "number" && newVal >= 35 && newVal < 43) {
+      toolbarHeight.value = "12vh";
+    } else if (typeof newVal === "number" && newVal < 35) {
       toolbarHeight.value = "21vh";
     } else {
       toolbarHeight.value = "10vh";
+    }
+
+    //  动态调整 img 和 canvas 尺寸（带边距预留）
+    if (imageElement.value && canvasEl.value && isImageReady.value) {
+      const img = imageElement.value;
+      const originalWidth = img.naturalWidth;
+      const originalHeight = img.naturalHeight;
+      const ratio = originalWidth / originalHeight;
+
+      let finalWidth = targetWidthPx;
+      let finalHeight = finalWidth / ratio;
+
+      const MAX_DISPLAY_WIDTH = 850;
+      const MAX_DISPLAY_HEIGHT = 650;
+
+      if (finalWidth > MAX_DISPLAY_WIDTH) {
+        finalWidth = MAX_DISPLAY_WIDTH;
+        finalHeight = finalWidth / ratio;
+      }
+
+      if (finalHeight > MAX_DISPLAY_HEIGHT) {
+        finalHeight = MAX_DISPLAY_HEIGHT;
+        finalWidth = finalHeight * ratio;
+      }
+
+      console.log(
+        `最终渲染尺寸（带留白后计算）: ${finalWidth.toFixed(
+          0
+        )}px x ${finalHeight.toFixed(0)}px`
+      );
+
+      // 应用到 <img>
+      img.style.width = `${finalWidth}px`;
+      img.style.height = `${finalHeight}px`;
+
+      // 应用到 Fabric canvas
+      if (canvas) {
+        canvas.setDimensions({
+          width: finalWidth,
+          height: finalHeight,
+        });
+        canvasEl.value.style.width = `${finalWidth}px`;
+        canvasEl.value.style.height = `${finalHeight}px`;
+        canvas.renderAll(); // 刷新画布内容，防止错位
+      }
     }
   },
   { immediate: true }
@@ -1344,37 +1413,76 @@ const onImageLoad = () => {
   noImg.value = false;
 
   // 1. 获取原始宽高
-  imageNaturalWidth = img.naturalWidth;
-  imageNaturalHeight = img.naturalHeight;
+  const originalWidth = img.naturalWidth;
+  const originalHeight = img.naturalHeight;
 
-  console.log("原始图片尺寸:", imageNaturalWidth, "x", imageNaturalHeight);
+  console.log("原始图片尺寸:", originalWidth, "x", originalHeight);
 
-  // 2. 计算最大允许缩放比例
-  const maxWidth = 400;
-  const maxHeight = 550;
+  // 2. 计算原始宽高比
+  const ratio = originalWidth / originalHeight;
 
-  const scaleByWidth = maxWidth / imageNaturalWidth;
-  const scaleByHeight = maxHeight / imageNaturalHeight;
+  // 3. 定义最大显示尺寸
+  const MAX_WIDTH = 850;
+  const MAX_HEIGHT = 650;
 
-  // 3. 取最小缩放比例
-  const scale = Math.min(scaleByWidth, scaleByHeight);
+  let finalWidth = 0;
+  let finalHeight = 0;
 
-  // 4. 计算最终显示尺寸
-  imageDisplayWidth = imageNaturalWidth * scale;
-  imageDisplayHeight = imageNaturalHeight * scale;
+  if (originalWidth > originalHeight) {
+    // 情况一：图片偏宽（宽 > 高），优先约束宽度
 
-  console.log("约束后显示尺寸:", imageDisplayWidth, "x", imageDisplayHeight);
+    // Step 1: 约束宽度
+    if (originalWidth < MAX_WIDTH) {
+      finalWidth = MAX_WIDTH; // 不足 850，放大到 850
+    } else {
+      finalWidth = MAX_WIDTH; // 超过 850，缩小到 850
+    }
 
-  // 5. 设置图片的显示尺寸（关键！）
-  img.style.width = `${imageDisplayWidth}px`;
-  img.style.height = `${imageDisplayHeight}px`;
+    // Step 2: 推导高度
+    let derivedHeight = finalWidth / ratio;
 
-  // 6. 设置 canvas 尺寸
+    if (derivedHeight > MAX_HEIGHT) {
+      // Step 3: 高度超了 650，约束高度为 650，再反推宽度
+      finalHeight = MAX_HEIGHT;
+      finalWidth = finalHeight * ratio;
+    } else {
+      finalHeight = derivedHeight;
+    }
+  } else {
+    // 情况二：图片偏高/方图（高 >= 宽），优先约束高度
+
+    // Step 1: 约束高度
+    if (originalHeight < MAX_HEIGHT) {
+      finalHeight = MAX_HEIGHT; // 不足 650，放大到 650
+    } else {
+      finalHeight = MAX_HEIGHT; // 超过 650，缩小到 650
+    }
+
+    // Step 2: 推导宽度
+    let derivedWidth = finalHeight * ratio;
+
+    if (derivedWidth > MAX_WIDTH) {
+      // Step 3: 宽度超了 850，约束宽度为 850，再反推高度
+      finalWidth = MAX_WIDTH;
+      finalHeight = finalWidth / ratio;
+    } else {
+      finalWidth = derivedWidth;
+    }
+  }
+
+  // 4. 最终输出（调试用）
+  console.log("最终计算尺寸（按你的推荐逻辑）:", finalWidth, "x", finalHeight);
+
+  // 5. 应用到 <img>
+  img.style.width = `${finalWidth}px`;
+  img.style.height = `${finalHeight}px`;
+
+  // 6. 应用到 Fabric canvas
   if (canvasEl.value) {
-    canvasEl.value.width = imageDisplayWidth;
-    canvasEl.value.height = imageDisplayHeight;
-    canvasEl.value.style.width = `${imageDisplayWidth}px`;
-    canvasEl.value.style.height = `${imageDisplayHeight}px`;
+    canvasEl.value.width = finalWidth;
+    canvasEl.value.height = finalHeight;
+    canvasEl.value.style.width = `${finalWidth}px`;
+    canvasEl.value.style.height = `${finalHeight}px`;
   }
 
   // 7. 初始化 Fabric
@@ -1512,7 +1620,7 @@ onMounted(() => {
     margin-top: 10px;
     // border: 3px solid red; // 可视化边界（调试用，可删）
     position: relative;
-    width: 400px;
+    // width: 400px;
   }
 
   .norem-img-content {
@@ -1522,7 +1630,7 @@ onMounted(() => {
     position: absolute;
     top: 0;
     left: 0;
-    max-width: 400px;
+    // max-width: 400px;
     width: auto;
     height: auto;
     display: block;

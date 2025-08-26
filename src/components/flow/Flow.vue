@@ -40,7 +40,7 @@
                 :index="`node-${groupIdx}-${nodeIdx}`"
                 class="menu-item-wrapper"
               >
-                <!-- 🎯 关键：使用插槽 #default 自定义内容，放入一个可拖拽的 div -->
+                <!-- ：使用插槽 #default 自定义内容，放入一个可拖拽的 div -->
                 <template #default>
                   <div
                     draggable="true"
@@ -931,6 +931,7 @@ const handleGlobalClick = (event) => {
   }
 };
 
+const handleMenuSelect = () => {};
 onMounted(() => {
   getSteps();
 });
