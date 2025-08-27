@@ -53,8 +53,8 @@ body,
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 16px;
-  height: 16px;
+  width:24px;
+  height:24px;
   cursor: pointer;
   user-select: none;
   padding: 5px;

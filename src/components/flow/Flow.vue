@@ -106,6 +106,7 @@
         />
         <!-- <MiniMap /> -->
         <Controls
+          class="flow-controls"
           :showFitView="false"
           :showInteractive="false"
           position="top-left"
@@ -1185,4 +1186,9 @@ onMounted(() => {
   background-color: #218838 !important;
   border-radius: 6px !important;
 }
+
+// .flow-controls .vue-flow__controls-button {
+//   width: 100px;
+//   height: 100px;
+// }
 </style>
