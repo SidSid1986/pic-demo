@@ -71,6 +71,7 @@ const onDrag = (e) => {
   console.log("拖拽中...", e.clientX);
 
   if (containerRef.value) {
+    console.log("拖拽计算");
     const container = containerRef.value;
     const containerRect = container.getBoundingClientRect();
     const mouseX = e.clientX - containerRect.left;
@@ -114,7 +115,8 @@ const onDrag = (e) => {
     leftWidth.value = newLeftWidth;
     rightWidth.value = newRightWidth;
   } else {
-    // 备选方案：基于窗口宽度（如果不想依赖 containerRef，但推荐用上面的方案）
+    console.log("222222");
+    // 备选方案：基于窗口宽度（如果不想依赖 containerRef，用上面的方案）
     const deltaX = e.clientX - startX.value;
     let newLeftWidth =
       startLeftWidth.value + (deltaX / window.innerWidth) * 100;

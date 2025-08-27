@@ -1,5 +1,5 @@
 <template>
-  <div class="img-container">
+  <div class="img-container" ref="imgContainerRef">
     <div class="toolbar-wrapper">
       <div
         class="toolbar"
@@ -103,21 +103,15 @@
         @error="onImageError"
       /> -->
 
-      <!-- <img
-        ref="imageElement"
-        class="norem-img-content"
-        :src="`${baseUrl}`"
-        alt=""
-        @load="onImageLoad"
-        @error="onImageError"
-      /> -->
       <img
         ref="imageElement"
         class="norem-img-content"
-        src="../../assets/333.jpg"
+        :src="`${testUrl}`"
         alt=""
         @load="onImageLoad"
+        @error="onImageError"
       />
+
       <canvas
         ref="canvasEl"
         class="fabric-canvas"
@@ -136,7 +130,7 @@
           >
           <span
             >图像处理耗时:<span class="blue"
-              >{{ processWidthProp }}ms</span
+              >{{ processTimeProp }}ms</span
             ></span
           >
         </div>
@@ -164,9 +158,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { fabric } from "fabric";
-import bgImage from "@/assets/111.jpg";
+import bgImage from "@/assets/222.jpg";
 import pen from "@/assets/pen.png";
 import {
   fetchImage,
@@ -179,7 +173,7 @@ import {
 import html2canvas from "html2canvas";
 
 const props = defineProps({
-  processWidthProp: {
+  processTimeProp: {
     type: Number,
     default: null,
   },
@@ -187,15 +181,20 @@ const props = defineProps({
   rightWidthProp: {
     //
     type: Number, //
-    default: 49.5, // 默认值
+    default: 49.9, // 默认值
   },
 });
-
+const imgContainerRef = ref(null);
+let resizeObserver = null;
 // 动态控制 toolbar 高度
 const toolbarHeight = ref("10vh");
 const imageInfoData = ref({});
 
 const valueCamera = ref(null);
+
+//原始尺寸
+const previousCanvasWidth = ref(0);
+const previousCanvasHeight = ref(0);
 
 // const optionsCamera = [
 //   {
@@ -228,6 +227,8 @@ const noImg = ref(false);
 const isImageReady = ref(false);
 const imageElement = ref(null);
 const baseUrl = ref("");
+
+const testUrl = ref(bgImage);
 
 // const baseUrl = import.meta.env.VITE_APP_API_HOST;
 // const baseUrl = import.meta.env.VITE_APP_IMG_HOST;
@@ -298,8 +299,107 @@ const canvasStates = ref([
 // 文本模式（新增！）
 const isTextMode = ref(false);
 
-const MAX_DISPLAY_WIDTH = ref(850);
-const MAX_DISPLAY_HEIGHT = ref(650);
+const MAX_WIDTH = ref(850);
+const MAX_HEIGHT = ref(650);
+
+//原来的watch，暂时注释
+// watch(
+//   () => props.rightWidthProp,
+//   (newVal) => {
+//     console.log(newVal + "vw宽度");
+//     console.log(typeof newVal);
+
+//     const viewportWidthPx = window.innerWidth;
+//     const targetWidthVw = newVal; // 比如 35
+//     let targetWidthPx = (targetWidthVw / 100) * viewportWidthPx;
+
+//     console.log(`视口总宽度: ${viewportWidthPx}px`);
+//     console.log(`目标宽度（${newVal}vw）: ${targetWidthPx}px`);
+
+//     //  预留边距逻辑
+//     const horizontalPaddingPx = 20; // 左右留白总共 20px（可调整为 10~20）
+//     targetWidthPx = targetWidthPx - horizontalPaddingPx;
+
+//     // 设置一个最小宽度，避免图片过小
+//     const minDisplayWidth = 100;
+//     if (targetWidthPx < minDisplayWidth) {
+//       targetWidthPx = minDisplayWidth;
+//       console.log(`调整后宽度过小，已限制为最小宽度: ${targetWidthPx}px`);
+//     }
+
+//     //  保留原有的工具栏高度逻辑
+//     if (typeof newVal === "number" && newVal >= 35 && newVal < 43) {
+//       toolbarHeight.value = "12vh";
+//     } else if (typeof newVal === "number" && newVal < 35) {
+//       toolbarHeight.value = "21vh";
+//     } else {
+//       toolbarHeight.value = "10vh";
+//     }
+
+//     //  动态调整 img 和 canvas 尺寸（带边距预留）
+//     if (imageElement.value && canvasEl.value && isImageReady.value) {
+//       const img = imageElement.value;
+//       const originalWidth = img.naturalWidth;
+//       const originalHeight = img.naturalHeight;
+//       const ratio = originalWidth / originalHeight;
+
+//       let finalWidth = targetWidthPx;
+//       let finalHeight = finalWidth / ratio;
+
+//       if (typeof newVal === "number" && newVal < 35) {
+//         MAX_HEIGHT.value = 550;
+//       } else {
+//         MAX_HEIGHT.value = 650;
+//       }
+
+//       if (finalWidth > MAX_WIDTH.value) {
+//         finalWidth = MAX_WIDTH.value;
+//         finalHeight = finalWidth / ratio;
+//       }
+
+//       if (finalHeight > MAX_HEIGHT.value) {
+//         finalHeight = MAX_HEIGHT.value;
+//         finalWidth = finalHeight * ratio;
+//       }
+
+//       console.log(
+//         `最终渲染尺寸（带留白后计算）: ${finalWidth.toFixed(0)}px x ${finalHeight.toFixed(
+//           0
+//         )}px`
+//       );
+
+//       // 应用到 <img>
+//       img.style.width = `${finalWidth}px`;
+//       img.style.height = `${finalHeight}px`;
+
+//       // 应用到 Fabric canvas
+//       if (canvas) {
+//         canvas.setDimensions({
+//           width: finalWidth,
+//           height: finalHeight,
+//         });
+//         canvasEl.value.style.width = `${finalWidth}px`;
+//         canvasEl.value.style.height = `${finalHeight}px`;
+//         canvas.renderAll(); // 刷新画布内容，防止错位
+//       }
+//     }
+//   },
+//   { immediate: true }
+// );
+
+// watch(
+//   () => valueCamera.value,
+//   async (newSrc) => {
+//     console.log("[监听 src 变化] 新的图片地址:", newSrc);
+
+//     // 等待 DOM 更新（确保 <img> 已经切换到新的 src）
+//     await nextTick();
+
+//     // 再次调用 onImageLoad，以重新计算尺寸、初始化画布等
+//     onImageLoad();
+//   },
+//   { immediate: false } // 默认就是 false，只在变化时触发
+// );
 
 watch(
   () => props.rightWidthProp,
@@ -308,24 +408,21 @@ watch(
     console.log(typeof newVal);
 
     const viewportWidthPx = window.innerWidth;
-    const targetWidthVw = newVal; // 比如 35
+    const targetWidthVw = newVal;
     let targetWidthPx = (targetWidthVw / 100) * viewportWidthPx;
 
     console.log(`视口总宽度: ${viewportWidthPx}px`);
     console.log(`目标宽度（${newVal}vw）: ${targetWidthPx}px`);
 
-    //  预留边距逻辑
-    const horizontalPaddingPx = 20; // 左右留白总共 20px（可调整为 10~20）
+    const horizontalPaddingPx = 20; // 左右留白
     targetWidthPx = targetWidthPx - horizontalPaddingPx;
 
-    // 可选：设置一个最小宽度，避免图片过小
     const minDisplayWidth = 100;
     if (targetWidthPx < minDisplayWidth) {
       targetWidthPx = minDisplayWidth;
       console.log(`调整后宽度过小，已限制为最小宽度: ${targetWidthPx}px`);
     }
 
-    //  保留原有的工具栏高度逻辑
     if (typeof newVal === "number" && newVal >= 35 && newVal < 43) {
       toolbarHeight.value = "12vh";
     } else if (typeof newVal === "number" && newVal < 35) {
@@ -334,7 +431,6 @@ watch(
       toolbarHeight.value = "10vh";
     }
 
-    //  动态调整 img 和 canvas 尺寸（带边距预留）
     if (imageElement.value && canvasEl.value && isImageReady.value) {
       const img = imageElement.value;
       const originalWidth = img.naturalWidth;
@@ -345,18 +441,18 @@ watch(
       let finalHeight = finalWidth / ratio;
 
       if (typeof newVal === "number" && newVal < 35) {
-        MAX_DISPLAY_HEIGHT.value = 550;
+        MAX_HEIGHT.value = 550;
       } else {
-        MAX_DISPLAY_HEIGHT.value = 650;
+        MAX_HEIGHT.value = 650;
       }
 
-      if (finalWidth > MAX_DISPLAY_WIDTH.value) {
-        finalWidth = MAX_DISPLAY_WIDTH.value;
+      if (finalWidth > MAX_WIDTH.value) {
+        finalWidth = MAX_WIDTH.value;
         finalHeight = finalWidth / ratio;
       }
 
-      if (finalHeight > MAX_DISPLAY_HEIGHT.value) {
-        finalHeight = MAX_DISPLAY_HEIGHT.value;
+      if (finalHeight > MAX_HEIGHT.value) {
+        finalHeight = MAX_HEIGHT.value;
         finalWidth = finalHeight * ratio;
       }
 
@@ -366,20 +462,81 @@ watch(
         )}px x ${finalHeight.toFixed(0)}px`
       );
 
-      // 应用到 <img>
-      img.style.width = `${finalWidth}px`;
-      img.style.height = `${finalHeight}px`;
+      // 核心逻辑开始
+      // 1. 如果是第一次加载（旧尺寸为 0），直接设置尺寸，不重绘图形
+      if (previousCanvasWidth.value === 0 || previousCanvasHeight.value === 0) {
+        console.log(
+          "[方案1] 初次加载或旧尺寸为 0，直接设置画布尺寸，不进行图形重绘"
+        );
 
-      // 应用到 Fabric canvas
-      if (canvas) {
-        canvas.setDimensions({
-          width: finalWidth,
-          height: finalHeight,
-        });
-        canvasEl.value.style.width = `${finalWidth}px`;
-        canvasEl.value.style.height = `${finalHeight}px`;
-        canvas.renderAll(); // 刷新画布内容，防止错位
+        // ---- 直接设置图片和画布尺寸 ----
+        img.style.width = `${finalWidth}px`;
+        img.style.height = `${finalHeight}px`;
+
+        if (canvasEl.value) {
+          canvasEl.value.width = finalWidth;
+          canvasEl.value.height = finalHeight;
+          canvasEl.value.style.width = `${finalWidth}px`;
+          canvasEl.value.style.height = `${finalHeight}px`;
+        }
+
+        if (!canvas) {
+          initFabricCanvas(finalWidth, finalHeight);
+        } else {
+          if (canvas) {
+            canvas.setDimensions({
+              width: finalWidth,
+              height: finalHeight,
+            });
+            canvas.renderAll();
+          }
+        }
+
+        // 记录当前画布尺寸，用于下一次缩放计算比例
+        previousCanvasWidth.value = finalWidth;
+        previousCanvasHeight.value = finalHeight;
+      } else {
+        // 2. 如果不是第一次（旧尺寸有值），则执行【保存 → 缩放 → 比例重绘】逻辑
+
+        console.log(
+          "[方案1] 检测到画布尺寸变化，执行【保存当前图形 → 缩放画布 → 按比例重绘图形】"
+        );
+
+        // ---- 2.1 先保存当前画布上所有图形 ----
+        const savedGraphics = canvas.toJSON(); // 当前所有用户画的图形
+
+        // ---- 2.2 执行图片和画布的缩放（你的原有逻辑）----
+        img.style.width = `${finalWidth}px`;
+        img.style.height = `${finalHeight}px`;
+
+        if (canvasEl.value) {
+          canvasEl.value.width = finalWidth;
+          canvasEl.value.height = finalHeight;
+          canvasEl.value.style.width = `${finalWidth}px`;
+          canvasEl.value.style.height = `${finalHeight}px`;
+        }
+
+        if (canvas) {
+          canvas.setDimensions({
+            width: finalWidth,
+            height: finalHeight,
+          });
+          canvas.renderAll();
+        }
+
+        // ---- 2.3 调用重绘函数，传入保存的图形、旧尺寸、新尺寸 ----
+        redrawSavedGraphics(
+          savedGraphics,
+          previousCanvasWidth.value,
+          previousCanvasHeight.value,
+          finalWidth,
+          finalHeight
+        );
       }
+
+      // ======================
+      // ✅ 方案 1：核心逻辑结束
+      // ======================
     }
   },
   { immediate: true }
@@ -401,11 +558,6 @@ const getImageInfo = async () => {
 
 const changeCamera = (e) => {
   console.log(e);
-
-  // setTimeout(() => {
-  //   getImageInfo();
-  // }, 3000);
-  //
 };
 
 // 更新画笔颜色
@@ -438,8 +590,6 @@ const setFreeDrawingMode = () => {
     canvas.defaultCursor = "default";
   }
 };
-
-// 添加矩形
 
 // 设置矩形拖拽模式
 const setRectangleDragMode = (isDragging) => {
@@ -889,8 +1039,7 @@ const handleCanvasMouseDown = (opt) => {
     setTextMode(false);
   }
 
-  // 注意：如果你还有其他模式的 mouse:down 处理，比如箭头/矩形，你仍然需要保留它们
-  // 你可以在这里调用它们，或者用模式判断分别调用
+  //还有其他模式的 mouse:down 处理这里调用，或者用模式判断分别调用
 };
 
 // 添加图形
@@ -1066,88 +1215,7 @@ const setMode = () => {
 
   canvas.selection = true; // ✅ 确保选中功能是开启的！
 };
-// 导出图片(canvas背景图是导入的img)
-// const exportImage = () => {
-//   if (!canvas) return;
-//   const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
-//   const link = document.createElement("a");
-//   link.download = `canvas-image-${Date.now()}.png`;
-//   link.href = dataURL;
-//   link.click();
-// };
 
-// 导出图片(canvas和img分开)静态图
-
-// const exportImage = async () => {
-//   const wrapper = document.querySelector(".export-image-wrapper");
-//   console.log(wrapper);
-
-//   if (!wrapper) {
-//     alert("未找到导出区域");
-//     return;
-//   }
-
-//   try {
-//     const canvas = await html2canvas(wrapper, {
-//       backgroundColor: null, // 透明背景，如果需要白色背景可设置为 "#ffffff"
-//       useCORS: true, // 如果有跨域图片可启用
-//       allowTaint: true, // 允许加载跨域图片（慎用，最好确保图片同源）
-//     });
-
-//     // 创建下载链接
-//     const link = document.createElement("a");
-//     link.download = `full-export-${Date.now()}.png`;
-//     link.href = canvas.toDataURL("image/png");
-//     link.click();
-//   } catch (error) {
-//     console.error("导出失败：", error);
-//     alert("导出失败，请重试");
-//   }
-// };
-
-// const exportImage = async () => {
-//   isDrawing.value = false;
-//   let data = { stop: true };
-
-//   // await stopImg(data);
-//   // fetchImage().then((res) => {});
-
-//   try {
-//     // 等待 stopImg 完成
-//     await stopImg(data);
-
-//     // 查找导出区域
-//     const wrapper = document.querySelector(".export-image-wrapper");
-//     if (!wrapper) {
-//       alert("未找到导出区域");
-//       return;
-//     }
-//     // 使用 html2canvas 生成 canvas
-//     const canvas = await html2canvas(wrapper, {
-//       backgroundColor: null,
-//       useCORS: true,
-//       allowTaint: true, // 谨慎使用
-//     });
-
-//     // 触发下载
-//     const link = document.createElement("a");
-//     link.download = `full-export-${Date.now()}.png`;
-//     link.href = canvas.toDataURL("image/png");
-//     link.click();
-
-//     imageCounter.value++;
-
-//     //启动
-//     // setTimeout(() => {
-//     // fetchImage().then((res) => {});
-//     // }, 5000);
-//   } catch (error) {
-//     console.error("导出失败：", error);
-//     alert("导出失败，请重试");
-//   }
-// };
-
-//实时图片
 //   导出按钮点击时调用的方法
 const exportImage = async () => {
   isDrawing.value = false;
@@ -1211,13 +1279,6 @@ const exportImage = async () => {
   }, "image/png");
 
   imageCounter.value++;
-
-  // 或者用 toDataURL 直接下载（备选）
-  // const dataURL = exportCanvas.toDataURL("image/png");
-  // const link = document.createElement("a");
-  // link.download = `exported-image-${Date.now()}.png`;
-  // link.href = dataURL;
-  // link.click();
 };
 
 // 删除当前选中的图形
@@ -1410,80 +1471,120 @@ const loadCanvas = () => {
 //   alert("✅ 蒙版已回显！（不含背景图，只恢复图形）");
 // };
 
-// 图片加载完成后的处理
+// 工具函数：根据保存的图形数据、旧尺寸、新尺寸，重新按比例绘制图形
+const redrawSavedGraphics = (
+  savedGraphics,
+  oldWidth,
+  oldHeight,
+  newWidth,
+  newHeight
+) => {
+  if (!canvas) return;
+
+  console.log(
+    `[方案1] 开始重绘图形：旧尺寸=${oldWidth}x${oldHeight}, 新尺寸=${newWidth}x${newHeight}`
+  );
+
+  // 1. 计算缩放比例
+  const scaleX = newWidth / oldWidth;
+  const scaleY = newHeight / oldHeight;
+  console.log(`[方案1] 缩放比例: scaleX=${scaleX}, scaleY=${scaleY}`);
+
+  // 2. 清空当前画布上的所有图形（保留背景图的话需另外处理，这里我们清空所有）
+  canvas.clear();
+  canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas)); // 如果你有背景图需要保留，不要调用这行
+
+  // 3. 加载之前保存的图形数据（JSON）
+  canvas.loadFromJSON(savedGraphics, () => {
+    console.log(`[方案1] 已加载保存的图形`);
+
+    // 4. 遍历所有图形对象，对它们的位置和尺寸进行等比例缩放
+    canvas.getObjects().forEach((obj) => {
+      if (obj.left !== undefined) obj.left = obj.left * scaleX;
+      if (obj.top !== undefined) obj.top = obj.top * scaleY;
+      if (obj.width !== undefined) obj.width = obj.width * scaleX;
+      if (obj.height !== undefined) obj.height = obj.height * scaleY;
+      if (obj.scaleX !== undefined) obj.scaleX = obj.scaleX * scaleX;
+      if (obj.scaleY !== undefined) obj.scaleY = obj.scaleY * scaleY;
+    });
+
+    // 5. 刷新画布，显示调整后的图形
+    canvas.renderAll();
+    console.log(`[方案1] 图形重绘完成，已按新尺寸比例调整`);
+
+    // 6. 更新记录，保存当前画布尺寸，用于下一次缩放计算比例
+    previousCanvasWidth.value = newWidth;
+    previousCanvasHeight.value = newHeight;
+  });
+};
+
+// 图片加载完成 —— 改写为动态计算尺寸（和 watch 逻辑保持一致）
 const onImageLoad = () => {
-  imageElement.value.style.display = "block";
+  console.log("img加载完");
   if (!imageElement.value) return;
   const img = imageElement.value;
 
   noImg.value = false;
 
   // 1. 获取原始宽高
-  const originalWidth = img.naturalWidth;
-  const originalHeight = img.naturalHeight;
+  imageNaturalWidth = img.naturalWidth;
+  imageNaturalHeight = img.naturalHeight;
+  console.log("原始图片尺寸:", imageNaturalWidth, "x", imageNaturalHeight);
 
-  console.log("原始图片尺寸:", originalWidth, "x", originalHeight);
+  const ratio = imageNaturalWidth / imageNaturalHeight;
 
-  // 2. 计算原始宽高比
-  const ratio = originalWidth / originalHeight;
+  // 2. 动态计算目标宽度
+  const viewportWidthPx = window.innerWidth;
+  const targetWidthVw = props.rightWidthProp; // 比如 49.9
+  let targetWidthPx = (targetWidthVw / 100) * viewportWidthPx;
 
-  // 3. 定义最大显示尺寸
-  const MAX_WIDTH = 850;
-  const MAX_HEIGHT = 650;
+  // 3. 减去左右边距
+  const horizontalPaddingPx = 20;
+  targetWidthPx = targetWidthPx - horizontalPaddingPx;
 
-  let finalWidth = 0;
-  let finalHeight = 0;
-
-  if (originalWidth > originalHeight) {
-    // 情况一：图片偏宽（宽 > 高），优先约束宽度
-
-    // Step 1: 约束宽度
-    if (originalWidth < MAX_WIDTH) {
-      finalWidth = MAX_WIDTH; // 不足 850，放大到 850
-    } else {
-      finalWidth = MAX_WIDTH; // 超过 850，缩小到 850
-    }
-
-    // Step 2: 推导高度
-    let derivedHeight = finalWidth / ratio;
-
-    if (derivedHeight > MAX_HEIGHT) {
-      // Step 3: 高度超了 650，约束高度为 650，再反推宽度
-      finalHeight = MAX_HEIGHT;
-      finalWidth = finalHeight * ratio;
-    } else {
-      finalHeight = derivedHeight;
-    }
-  } else {
-    // 情况二：图片偏高/方图（高 >= 宽），优先约束高度
-
-    // Step 1: 约束高度
-    if (originalHeight < MAX_HEIGHT) {
-      finalHeight = MAX_HEIGHT; // 不足 650，放大到 650
-    } else {
-      finalHeight = MAX_HEIGHT; // 超过 650，缩小到 650
-    }
-
-    // Step 2: 推导宽度
-    let derivedWidth = finalHeight * ratio;
-
-    if (derivedWidth > MAX_WIDTH) {
-      // Step 3: 宽度超了 850，约束宽度为 850，再反推高度
-      finalWidth = MAX_WIDTH;
-      finalHeight = finalWidth / ratio;
-    } else {
-      finalWidth = derivedWidth;
-    }
+  // 4. 设置最小宽度
+  const minDisplayWidth = 100;
+  if (targetWidthPx < minDisplayWidth) {
+    targetWidthPx = minDisplayWidth;
+    console.log(`[onImageLoad] 宽度过小，已限制为: ${targetWidthPx}px`);
   }
 
-  // 4. 最终输出（调试用）
-  console.log("最终计算尺寸（按你的推荐逻辑）:", finalWidth, "x", finalHeight);
+  // 5. 动态设置最大显示高度
+  let maxDisplayHeightPx;
+  if (targetWidthVw < 35) {
+    maxDisplayHeightPx = 550;
+  } else {
+    maxDisplayHeightPx = 650;
+  }
 
-  // 5. 应用到 <img>
+  const MAX_DISPLAY_WIDTH_PX = MAX_WIDTH.value; // 比如 850
+  const MAX_DISPLAY_HEIGHT_PX = maxDisplayHeightPx; // 比如 650
+
+  // 6. 根据宽高比计算最终宽高
+  let finalWidth = targetWidthPx;
+  let finalHeight = finalWidth / ratio;
+
+  if (finalWidth > MAX_DISPLAY_WIDTH_PX) {
+    finalWidth = MAX_DISPLAY_WIDTH_PX;
+    finalHeight = finalWidth / ratio;
+  }
+
+  if (finalHeight > MAX_DISPLAY_HEIGHT_PX) {
+    finalHeight = MAX_DISPLAY_HEIGHT_PX;
+    finalWidth = finalHeight * ratio;
+  }
+
+  console.log(
+    `[onImageLoad] 最终渲染尺寸: ${finalWidth.toFixed(
+      0
+    )}px x ${finalHeight.toFixed(0)}px`
+  );
+
+  // 7. 应用到 <img>
   img.style.width = `${finalWidth}px`;
   img.style.height = `${finalHeight}px`;
 
-  // 6. 应用到 Fabric canvas
+  // 8. 应用到 <canvas> 的 DOM 元素（fabric 底层 canvas）
   if (canvasEl.value) {
     canvasEl.value.width = finalWidth;
     canvasEl.value.height = finalHeight;
@@ -1491,9 +1592,21 @@ const onImageLoad = () => {
     canvasEl.value.style.height = `${finalHeight}px`;
   }
 
-  // 7. 初始化 Fabric
-  initFabricCanvas();
-  isDrawing.value = false;
+  // 9. 初始化 OR 更新 Fabric canvas 尺寸（核心！）
+  if (!canvas) {
+    // 初始化 fabric canvas（只做一次！）
+    initFabricCanvas(finalWidth, finalHeight);
+  } else {
+    // 已存在 canvas，只同步尺寸，不要重新初始化！
+    if (canvas) {
+      canvas.setDimensions({
+        width: finalWidth,
+        height: finalHeight,
+      });
+      canvas.renderAll(); // 可选，确保画布刷新
+    }
+  }
+
   isImageReady.value = true;
   getImageInfo();
 };
@@ -1518,28 +1631,25 @@ const onImageError = (event) => {
   }
 };
 
-// 初始化 Fabric Canvas
-const initFabricCanvas = () => {
+// 初始化 Fabric canvas（只执行一次，传入正确的宽高）
+const initFabricCanvas = (width, height) => {
   if (!canvasEl.value) return;
 
+  // 如果已存在 canvas，先销毁，避免重复
   if (canvas) {
-    canvas.dispose(); // 销毁旧的，避免重复
+    canvas.dispose();
   }
 
+  // 创建新的 Fabric canvas，并传入当前计算好的宽高
   canvas = new fabric.Canvas(canvasEl.value, {
-    width: imageDisplayWidth,
-    height: imageDisplayHeight,
-    backgroundColor: "transparent", // 可选
+    width: width,
+    height: height,
+    backgroundColor: "transparent",
   });
 
-  console.log(canvasEl.value);
+  console.log("✅ Fabric Canvas 已初始化，尺寸:", width, "x", height);
 
-  console.log(
-    "✅ Fabric Canvas 已初始化，尺寸:",
-    imageDisplayWidth,
-    "x",
-    imageDisplayHeight
-  );
+  // 绑定鼠标事件（根据你原来的逻辑）
   canvas.on("mouse:down", (opt) => {
     handleArrowDragMouseDown(opt);
     handleRectangleDragMouseDown(opt);
@@ -1548,6 +1658,7 @@ const initFabricCanvas = () => {
     handleTriangleDragMouseDown(opt);
     handleCanvasMouseDown(opt);
   });
+
   canvas.on("mouse:move", (opt) => {
     handleArrowDragMouseMove(opt);
     handleRectangleDragMouseMove(opt);
@@ -1555,6 +1666,7 @@ const initFabricCanvas = () => {
     handleEllipseDragMouseMove(opt);
     handleTriangleDragMouseMove(opt);
   });
+
   canvas.on("mouse:up", (opt) => {
     handleArrowDragMouseUp(opt);
     handleRectangleDragMouseUp(opt);
@@ -1569,41 +1681,13 @@ onMounted(() => {
   getCameraList();
   console.log(window.location.origin);
   baseUrl.value = window.location.origin;
-  // fetchImage().then((res) => {});
-  // canvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400 });
-  // setArrowDragMode(false);
-  // fabric.Image.fromURL(bgImage, (img) => {
-  //   if (!img) return console.error("背景图加载失败");
-  //   img.set({
-  //     scaleX: canvas.width / img.width,
-  //     scaleY: canvas.height / img.height,
-  //     selectable: false,
-  //     evented: false,
-  //   });
-  //   canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-  // });
-  // canvas.on("mouse:down", (opt) => {
-  //   handleArrowDragMouseDown(opt);
-  //   handleRectangleDragMouseDown(opt);
-  //   handleCircleDragMouseDown(opt);
-  //   handleEllipseDragMouseDown(opt);
-  //   handleTriangleDragMouseDown(opt);
-  //   handleCanvasMouseDown(opt);
-  // });
-  // canvas.on("mouse:move", (opt) => {
-  //   handleArrowDragMouseMove(opt);
-  //   handleRectangleDragMouseMove(opt);
-  //   handleCircleDragMouseMove(opt);
-  //   handleEllipseDragMouseMove(opt);
-  //   handleTriangleDragMouseMove(opt);
-  // });
-  // canvas.on("mouse:up", (opt) => {
-  //   handleArrowDragMouseUp(opt);
-  //   handleRectangleDragMouseUp(opt);
-  //   handleCircleDragMouseUp(opt);
-  //   handleEllipseDragMouseUp(opt);
-  //   handleTriangleDragMouseUp(opt);
-  // });
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 });
 </script>
 
