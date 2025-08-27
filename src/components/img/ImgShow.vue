@@ -298,6 +298,9 @@ const canvasStates = ref([
 // 文本模式（新增！）
 const isTextMode = ref(false);
 
+const MAX_DISPLAY_WIDTH = ref(850);
+const MAX_DISPLAY_HEIGHT = ref(650);
+
 watch(
   () => props.rightWidthProp,
   (newVal) => {
@@ -341,16 +344,19 @@ watch(
       let finalWidth = targetWidthPx;
       let finalHeight = finalWidth / ratio;
 
-      const MAX_DISPLAY_WIDTH = 850;
-      const MAX_DISPLAY_HEIGHT = 650;
+      if (typeof newVal === "number" && newVal < 35) {
+        MAX_DISPLAY_HEIGHT.value = 550;
+      } else {
+        MAX_DISPLAY_HEIGHT.value = 650;
+      }
 
-      if (finalWidth > MAX_DISPLAY_WIDTH) {
-        finalWidth = MAX_DISPLAY_WIDTH;
+      if (finalWidth > MAX_DISPLAY_WIDTH.value) {
+        finalWidth = MAX_DISPLAY_WIDTH.value;
         finalHeight = finalWidth / ratio;
       }
 
-      if (finalHeight > MAX_DISPLAY_HEIGHT) {
-        finalHeight = MAX_DISPLAY_HEIGHT;
+      if (finalHeight > MAX_DISPLAY_HEIGHT.value) {
+        finalHeight = MAX_DISPLAY_HEIGHT.value;
         finalWidth = finalHeight * ratio;
       }
 
