@@ -69,6 +69,12 @@
             🗑️ 删除选中
           </button>
           <button @click="exportImage" class="export-btn">📥 导出图片</button>
+          <button
+            @click="showOriginalImage"
+            class="export-btn original-image-btn"
+          >
+            🔍 原图显示
+          </button>
           <!-- <button @click="saveCanvas" class="save-btn">💾 保存画布</button>
         <button @click="loadCanvas()" class="load-btn">🔄 回显画布</button> -->
         </div>
@@ -154,6 +160,31 @@
         </div>
       </div>
     </div>
+
+    <!-- dialog -->
+
+    <el-dialog
+      v-model="showOriginalModal"
+      title="原始大小"
+      custom-class="original-size-dialog"
+    >
+      <div class="original-image-container">
+        <img
+          :src="testUrl"
+          alt="原始图片"
+          class="original-image-original-size"
+        />
+        <!-- 项目暂用 -->
+        <!-- <img
+        ref="imageElement"
+        class="norem-img-content"
+        :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
+        alt=""
+        @load="onImageLoad"
+        @error="onImageError"
+      /> -->
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -191,6 +222,8 @@ const toolbarHeight = ref("10vh");
 const imageInfoData = ref({});
 
 const valueCamera = ref(null);
+
+const showOriginalModal = ref(false);
 
 //原始尺寸
 const previousCanvasWidth = ref(0);
@@ -505,7 +538,7 @@ watch(
         // ---- 2.1 先保存当前画布上所有图形 ----
         const savedGraphics = canvas.toJSON(); // 当前所有用户画的图形
 
-        // ---- 2.2 执行图片和画布的缩放（你的原有逻辑）----
+        // ---- 2.2 执行图片和画布的缩放（原有逻辑）----
         img.style.width = `${finalWidth}px`;
         img.style.height = `${finalHeight}px`;
 
@@ -533,10 +566,6 @@ watch(
           finalHeight
         );
       }
-
-      // ======================
-      // ✅ 方案 1：核心逻辑结束
-      // ======================
     }
   },
   { immediate: true }
@@ -1676,6 +1705,11 @@ const initFabricCanvas = (width, height) => {
   });
 };
 
+//展示原始图片大小
+const showOriginalImage = () => {
+  showOriginalModal.value = true;
+};
+
 // 初始化画布
 onMounted(() => {
   getCameraList();
@@ -2016,6 +2050,28 @@ onUnmounted(() => {
       }
     }
   }
+}
+
+//dialog
+
+.original-image-container {
+  width: 70%;
+  height: 69vh;
+  overflow: auto;
+  // border: 1px solid #ddd;
+  margin: 10px auto;
+  display: block;
+}
+
+.original-image-original-size {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto;
 }
 </style>
 
