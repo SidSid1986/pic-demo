@@ -91,14 +91,15 @@
       /> -->
 
       <!-- 项目暂用 -->
-      <!-- <img
+      <img
+        v-if="valueCamera != null"
         ref="imageElement"
         class="norem-img-content"
         :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      /> -->
+      />
 
       <!-- <img
         ref="imageElement"
@@ -109,14 +110,14 @@
         @error="onImageError"
       /> -->
 
-      <img
+      <!-- <img
         ref="imageElement"
         class="norem-img-content"
         :src="`${testUrl}`"
         alt=""
         @load="onImageLoad"
         @error="onImageError"
-      />
+      /> -->
 
       <canvas
         ref="canvasEl"
@@ -169,20 +170,20 @@
       custom-class="original-size-dialog"
     >
       <div class="original-image-container">
-        <img
+        <!-- <img
           :src="testUrl"
           alt="原始图片"
           class="original-image-original-size"
-        />
+        /> -->
         <!-- 项目暂用 -->
-        <!-- <img
-        ref="imageElement"
-        class="norem-img-content"
-        :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
-        alt=""
-        @load="onImageLoad"
-        @error="onImageError"
-      /> -->
+        <img
+          ref="imageElement"
+          class="norem-img-content"
+          :src="`${baseUrl}/api/get_fetch_image?camera_index=${valueCamera}&t=${imageCounter}`"
+          alt=""
+          @load="onImageLoad"
+          @error="onImageError"
+        />
       </div>
     </el-dialog>
   </div>
@@ -1612,6 +1613,7 @@ const onImageLoad = () => {
   // 7. 应用到 <img>
   img.style.width = `${finalWidth}px`;
   img.style.height = `${finalHeight}px`;
+  img.style.display = "block";
 
   // 8. 应用到 <canvas> 的 DOM 元素（fabric 底层 canvas）
   if (canvasEl.value) {
